@@ -1,0 +1,6 @@
+# Standalone RAG chatbot (codebase_chatbot.py / codebase_chatbot_gui.py)
+# Python 3.10+ recommended. tkinter is stdlib but OS packages differ — see README.md.
+
+openai>=1.0.0
+requests>=2.31.0
+huggingface_hub>=0.20.0

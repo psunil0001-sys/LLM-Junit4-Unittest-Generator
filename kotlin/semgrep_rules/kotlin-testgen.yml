@@ -1,0 +1,36 @@
+rules:
+  - id: kotlin.hardcoded-dispatcher
+    languages: [kotlin]
+    severity: WARNING
+    message: Hard-coded coroutine dispatcher requires execution-proof analysis.
+    patterns:
+      - pattern-either:
+          - pattern: $SCOPE.launch(Dispatchers.IO) { ... }
+          - pattern: $SCOPE.launch(Dispatchers.Default) { ... }
+          - pattern: withContext(Dispatchers.IO) { ... }
+          - pattern: withContext(Dispatchers.Default) { ... }
+
+  - id: kotlin.detached-coroutine-scope
+    languages: [kotlin]
+    severity: WARNING
+    message: Detached coroutine scope can escape the test scheduler and lifecycle.
+    pattern-either:
+      - pattern: GlobalScope.launch { ... }
+      - pattern: GlobalScope.launch(...) { ... }
+      - pattern: CoroutineScope(...).launch { ... }
+      - pattern: CoroutineScope(...).launch(...) { ... }
+      - pattern: CoroutineScope(...).async { ... }
+      - pattern: CoroutineScope(...).async(...) { ... }
+
+  - id: kotlin.mockk-api
+    languages: [kotlin]
+    severity: ERROR
+    message: MockK API candidate; verify the owning module mocking framework.
+    pattern-either:
+      - pattern: mockk(...)
+      - pattern: coEvery { ... }
+      - pattern: coVerify { ... }
+      - pattern: every { ... }
+      - pattern: mockkObject(...)
+      - pattern: mockkStatic(...)
+      - pattern: spyk(...)

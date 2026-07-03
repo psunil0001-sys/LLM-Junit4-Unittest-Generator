@@ -1,0 +1,139 @@
+@startuml
+
+title AI Unit Test Generator - Layered Architecture Flow
+
+skinparam backgroundColor #F6F9FC
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam ArrowColor #55758A
+skinparam ArrowThickness 1.2
+skinparam packageStyle rectangle
+
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor #8AA5B7
+  FontColor #263743
+}
+
+skinparam package {
+  BorderColor #7898AE
+  FontColor #263743
+}
+
+skinparam note {
+  BackgroundColor #FFFBEA
+  BorderColor #D8C987
+  FontColor #263743
+}
+
+left to right direction
+
+package "1. Inputs" as InputsLayer #EAF2FB {
+  rectangle "Choose target\nsource file, folder,\nor module" as ChooseTarget
+  rectangle "Read context\nsource, tests,\nGradle/Kover files" as ReadContext
+  ChooseTarget --> ReadContext
+}
+
+package "2. Core Platform" as CoreLayer #FFF4DC {
+  rectangle "AI runtime\nchat, prompts,\nstuck detection" as CoreRuntime
+  rectangle "Runtime config\nthinking + guardrails,\nserver command" as RuntimeConfig
+  rectangle "MCP access\nsafe files,\nproject search" as CoreMcp
+  rectangle "Classified lessons + RAG\nsource tags, ranking,\nvector cache" as CoreRag
+  RuntimeConfig --> CoreRuntime
+  CoreRuntime --> CoreMcp
+  CoreMcp --> CoreRag
+}
+
+package "3. Kotlin Test Strategy" as StrategyLayer #E7F4F2 {
+  rectangle "Understand source\nclassification +\npublic entry paths" as UnderstandSource
+  rectangle "Static analysis\nTree-sitter,\nSemgrep,\nPydantic report" as StaticAnalysis
+  rectangle "Verified project context\nresources, ViewBinding,\nSDK bounds, dependencies,\nnearby tests" as AssembleContext
+  rectangle "Pick strategy\nguardrail catalog +\nsource contracts" as PickStrategy
+  UnderstandSource --> StaticAnalysis
+  StaticAnalysis --> AssembleContext
+  AssembleContext --> PickStrategy
+}
+
+package "4. Coverage-Guided Generation" as GenerateLayer #EDF3F8 {
+  rectangle "Full generation\nbaseline Kover then\nnew full test" as FullGeneration
+  rectangle "Incremental planner\ncomplete inventory,\nlargest safe first" as IncrementalPlanner
+  rectangle "Attempt loop\nsafe batches then\ncompatible attemptable" as AttemptLoop
+  rectangle "Build selected-only prompt\nJUnit4 rules, lessons,\nresources, trigger recipes" as BuildPrompt
+  rectangle "Generate + merge\nnew or supplemental\ntest candidate" as GenerateCandidate
+  IncrementalPlanner --> AttemptLoop
+  FullGeneration --> BuildPrompt
+  AttemptLoop --> BuildPrompt
+  BuildPrompt --> GenerateCandidate
+}
+
+package "5. Quality Gates" as GatesLayer #EEF2F6 {
+  rectangle "Optional local validation\nTESTGEN_ENABLE_GUARDRAILS,\ntrigger intent, resources,\nMockito/Firebase guards" as StaticValidation
+  rectangle "Gradle + JUnit\ncompile, runtime,\ntest results" as GradleJunit
+  rectangle "Kover proof\ncoverage value\nwhen enabled" as KoverProof
+  StaticValidation --> GradleJunit
+  GradleJunit --> KoverProof
+}
+
+package "6. Repair Loop" as RepairLayer #FFF0E8 {
+  rectangle "Analyze failure\nexact compiler,\nJUnit, Kover lines" as AnalyzeFailure
+  rectangle "Filter ownership\ngenerated test only,\nexternal noise logged" as OwnershipFilter
+  rectangle "Focused repair\nprimary root cause,\nbounded retry" as FocusedRepair
+  AnalyzeFailure --> OwnershipFilter
+  OwnershipFilter --> FocusedRepair
+}
+
+package "7. Outputs" as OutputsLayer #E9F7EF {
+  rectangle "Save accepted result\npassing test +\nKover improvement" as SaveOutputs
+  rectangle "Rollback rejected result\nrestore/delete candidate,\nrecord attempt" as Rollback
+  rectangle "Coverage accountability\nblocked vs environment vs\npipeline unresolved" as Accountability
+  rectangle "Kover HTML dashboards\ncoverage summary +\ngap planner views" as KoverDashboards
+}
+
+ReadContext --> CoreRuntime
+CoreRag --> UnderstandSource
+PickStrategy --> FullGeneration : no usable existing coverage
+PickStrategy --> IncrementalPlanner : existing / indirect coverage
+GenerateCandidate --> StaticValidation
+KoverProof --> SaveOutputs : accepted
+
+StaticValidation --> AnalyzeFailure : invalid
+GradleJunit --> AnalyzeFailure : failed
+FocusedRepair ..> BuildPrompt : focused retry
+KoverProof --> Rollback : no delta / missing proof
+FocusedRepair --> Rollback : retry budget exhausted
+Rollback --> AttemptLoop : next fingerprint
+Rollback --> Accountability
+SaveOutputs --> Accountability
+Accountability --> KoverDashboards
+
+note bottom of CoreLayer
+Core = reusable platform services:
+runtime config, MCP, classified lessons,
+vector cache, RAG ranking, and prompt assembly.
+end note
+
+note bottom of StrategyLayer
+Kotlin Strategy = source classification
+plus Tree-sitter/Semgrep/Pydantic signals,
+verified resources, public paths,
+SDK guidance, JUnit4 prompts,
+and shared guardrail selection.
+end note
+
+note bottom of GatesLayer
+Quality Gates run in order:
+optional local validation, Gradle/JUnit,
+then Kover coverage acceptance.
+end note
+
+legend bottom
+  Main flow: Inputs -> Core Platform -> Kotlin Strategy -> Full/Incremental Generation -> Quality Gates -> Outputs
+  Repair loop: owned failures return failed candidates for focused retry
+  Acceptance rule: only Gradle-passing, Kover-improving candidates are retained
+  Rejected work: restored/deleted and classified separately from proven source blockers
+endlegend
+
+@enduml
