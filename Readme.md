@@ -1,4 +1,4 @@
-# POC Case Study: Local Kotlin Unit Test Generation
+# Local Kotlin Unit Test Generation
 
 ## Goal
 
