@@ -46,6 +46,8 @@ ORCHESTRATION_ONLY_CODES = frozenset(
         "invalid_inject_field_shallow_coverage",
         "invalid_fragment_fixture",
         "duplicate_incremental_candidate",
+        "missing_coverage_trigger_network",
+        "missing_coverage_trigger_callback",
     }
 )
 
@@ -193,7 +195,7 @@ GUARDRAIL_RULES: tuple[GuardrailRule, ...] = (
                 "invalid_hardcoded_dispatcher_final_state_assertion",
             }
         ),
-        prompt_targets=frozenset({"kotlin_android", "repair", "incremental"}),
+        prompt_targets=frozenset({"kotlin_android", "repair", "incremental", "blueprint_viewmodel"}),
     ),
     GuardrailRule(
         id="navigation",
@@ -227,11 +229,13 @@ GUARDRAIL_RULES: tuple[GuardrailRule, ...] = (
             "If source reads toolbar.progressBar, stub progressBar before attach/resume and verify the ProgressBarController mock directly.",
             "CarUI ProgressBarController uses setIndeterminate(boolean), not setIsIndeterminate.",
             "For ToolbarController.registerBackListener, use the verified Java callback shape from the CarUi API; do not guess a Kotlin () -> Boolean callback.",
+            "For CarUi MenuItem tests, capture List<MenuItem> from setMenuItems and call MenuItem.performClick(); MenuItem.onClick is not a public property.",
         ),
         repair_bullets=(
             "Stub CarUi.requireToolbar with the exact host Activity and typed ToolbarController/ProgressBarController mocks.",
             "Use the verified CarUi back-listener callback shape; do not capture or stub it as a guessed Kotlin () -> Boolean callback.",
             "CarUI ProgressBarController uses setIndeterminate(boolean), not setIsIndeterminate; or assert public UI behavior instead.",
+            "Replace MenuItem.onClick access with a captured MenuItem.performClick() call.",
         ),
         validator_codes=frozenset(
             {
@@ -239,6 +243,7 @@ GUARDRAIL_RULES: tuple[GuardrailRule, ...] = (
                 "invalid_carui_progress_fixture",
                 "invalid_carui_progress_verification",
                 "invalid_carui_back_listener_fixture",
+                "invalid_carui_menu_callback_api",
             }
         ),
         prompt_targets=frozenset({"kotlin_android", "repair", "blueprint_fragment", "incremental"}),
@@ -396,7 +401,10 @@ def _build_repair_intents() -> dict[str, str]:
     # Explicit overrides where one code needs a specific message
     overrides = {
         "missing_coverage_trigger_menu": (
-            "Capture the exact typed menu listener, invoke it once, and assert the resulting public behavior."
+            "Capture List<MenuItem> passed to setMenuItems, call MenuItem.performClick(), and assert the resulting public behavior."
+        ),
+        "invalid_carui_menu_callback_api": (
+            "MenuItem.onClick is not public in CarUi; capture the MenuItem and call performClick()."
         ),
         "missing_coverage_trigger_activity_result": (
             "Dispatch a concrete ActivityResult through the verified registry/helper callback; do not reflect launcher fields."
@@ -526,6 +534,34 @@ def _build_repair_intents() -> dict[str, str]:
         ),
         "missing_coverage_trigger_observer_before_click": (
             "Post/set the required observable value, then performClick() on the registered view."
+        ),
+        "missing_coverage_trigger_network": (
+            "Configure the verified Robolectric network state before performClick(), using "
+            "setDefaultNetworkActive(...) or the source's getNetworkCapabilities(...) path."
+        ),
+        "missing_coverage_trigger_callback": (
+            "Invoke the concrete callback or event trigger required by the selected fixture before asserting its effect."
+        ),
+        "invalid_fragment_lifecycle_reentry": (
+            "Remove direct onCreateView/onViewCreated calls after FragmentManager attachment; commitNow already enters lifecycle."
+        ),
+        "invalid_fragment_arguments_after_attach": (
+            "Create a fresh Fragment, set arguments first, then attach it through FragmentManager."
+        ),
+        "invalid_detached_coroutine_scope": (
+            "Do not create GlobalScope or a standalone CoroutineScope in the test; use runTest and the verified scheduler."
+        ),
+        "invalid_suspend_call_context": (
+            "Move suspend production calls out of @Before/stubbing expressions and invoke them inside runTest."
+        ),
+        "invalid_project_interface_call": (
+            "Use only methods declared by the verified project interface; remove the invented call or replace it with the real API."
+        ),
+        "invalid_speculative_sdk_exception_constructor": (
+            "Use only a project-verified exception constructor or throw a standard exception accepted by the public path."
+        ),
+        "invalid_mocking_framework": (
+            "Use the configured Mockito-Kotlin APIs and remove MockK imports and calls."
         ),
     }
     intents.update(overrides)

@@ -38,7 +38,7 @@ FIXTURE_PLAYBOOK_VERIFIED_DIALOG_CALLBACK = (
 
 FIXTURE_PLAYBOOK_VERIFIED_MENU_CALLBACK = (
     "### PLAYBOOK: verified_menu_callback\n"
-    "Steps: open menu through public path; invoke menu item callback; assert collaborator effect.\n"
+    "Steps: after attach, use argumentCaptor<List<MenuItem>>() with verify(toolbar).setMenuItems(captor.capture()), then call captor.firstValue.first().performClick(); assert visible dialog/navigation/state. Do not access a nonexistent MenuItem.onClick property or invent resource IDs.\n"
     + orchestration_gate_text("missing_coverage_trigger_menu", "invoke menu callback after attach")
 )
 
@@ -84,6 +84,16 @@ FIXTURE_PLAYBOOK_ATTACHED_HILT_FRAGMENT = (
     + orchestration_gate_text("missing_coverage_observation_toolbar", "stub CarUi toolbar before attach when needed")
 )
 
+FIXTURE_PLAYBOOK_ROBOLECTRIC_ACTIVITY = (
+    "### PLAYBOOK: robolectric_activity_lifecycle\n"
+    "Steps: use Robolectric.buildActivity(...); drive lifecycle through ActivityController; use the verified manifest theme; assert public UI/state; never call protected lifecycle methods directly."
+)
+
+FIXTURE_PLAYBOOK_ROBOLECTRIC_APPLICATION = (
+    "### PLAYBOOK: robolectric_application_lifecycle\n"
+    "Steps: obtain the verified Robolectric application for the active variant; invoke public lifecycle behavior only; do not mutate fixed BuildConfig branches."
+)
+
 FIXTURE_PLAYBOOK_PUBLIC_METHOD = (
     "### PLAYBOOK: public_method\n"
     "Invoke the selected public method with verified fixtures; assert observable effect."
@@ -115,6 +125,8 @@ FIXTURE_PLAYBOOK_BY_ID = {
     "verified_stream_emission": FIXTURE_PLAYBOOK_VERIFIED_STREAM_EMISSION,
     "verified_callback": FIXTURE_PLAYBOOK_VERIFIED_CALLBACK,
     "attached_hilt_fragment": FIXTURE_PLAYBOOK_ATTACHED_HILT_FRAGMENT,
+    "robolectric_activity_lifecycle": FIXTURE_PLAYBOOK_ROBOLECTRIC_ACTIVITY,
+    "robolectric_application_lifecycle": FIXTURE_PLAYBOOK_ROBOLECTRIC_APPLICATION,
     "public_method": FIXTURE_PLAYBOOK_PUBLIC_METHOD,
     "viewmodel_sync_public": FIXTURE_PLAYBOOK_VIEWMODEL_SYNC_PUBLIC,
     "viewmodel_public_method": FIXTURE_PLAYBOOK_VIEWMODEL_PUBLIC_METHOD,
@@ -132,7 +144,7 @@ INCREMENTAL_COVERAGE_RULES = """
 --- FINAL INCREMENTAL COVERAGE RULES ---
 - Generate tests ONLY for selected targets from COVERAGE OPPORTUNITY PLAN.
 - Treat alternative opportunities as context only; do not generate tests for them in this attempt.
-- Do not generate tests for blocked opportunities; report seam recommendations instead.
+- Do not generate tests for blocked opportunities unless they appear under "Selected blocked opportunities by explicit CLI override".
 - Private methods are coverage consequences reached through selected public APIs only.
 - For partial when/case branch gaps, follow the selected trigger recipe; if it says complementary/default input, do not repeat the printed case label.
 - For Fragment sources: no per-file graph mutation; reuse shared test Hilt bindings.
@@ -286,7 +298,7 @@ def incremental_coverage_rules_for_source(categories, source_code: str = "") -> 
             "--- FINAL INCREMENTAL COVERAGE RULES ---\n"
             "- Generate tests ONLY for selected targets from COVERAGE OPPORTUNITY PLAN.\n"
             "- Treat alternative opportunities as context only; do not generate tests for them in this attempt.\n"
-            "- Do not generate tests for blocked opportunities.\n"
+            "- Do not generate tests for blocked opportunities unless explicitly selected by the CLI bucket override.\n"
             "- Private methods are reached only through selected public APIs.\n"
             "- For partial when/case branch gaps, follow the selected trigger recipe; complementary/default probes must not repeat the printed case label.\n"
         )

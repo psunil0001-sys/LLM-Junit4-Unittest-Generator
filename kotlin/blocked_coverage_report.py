@@ -88,7 +88,7 @@ def recommended_fix_for_reason(reason: str) -> str:
     if code == "fixed_internal_branch_input":
         return "Expose the fixed local value as a public input or injectable collaborator before testing the opposite branch."
     if code == "needs_callback_seam":
-        return "Inject the callback owner or a registration wrapper so tests can deliver the callback deterministically."
+        return "Expose the callback or state owner through an injectable factory/registration wrapper so tests can trigger it deterministically."
     if code == "needs_private_state_seam":
         return "Expose the required state through an injectable collaborator or public API; do not replace private Activity fields."
     if code in {"qualifier_mismatch", "hilt_graph_unclosed", "missing_dependency", "inaccessible_binding"}:
@@ -105,7 +105,7 @@ def suggested_test_for_reason(reason: str) -> str:
     if code in {"needs_static_wrapper", "needs_verified_sdk_fixture"}:
         return "Mock/fake the injectable wrapper and assert the public behavior produced by the SDK branch."
     if code == "needs_callback_seam":
-        return "Inject a fake callback owner, deliver the callback through the public entry, and assert the resulting state."
+        return "Use the exposed fake callback/state owner through the public entry, trigger it, and assert the resulting behavior."
     if code == "needs_verified_exception_fixture":
         return "Use the public API to trigger the fake/throwing collaborator and assert the visible fallback behavior."
     if code == "private_only_path":

@@ -1,4 +1,4 @@
-# Local Kotlin Unit Test Generation
+# POC Case Study: Local Kotlin Unit Test Generation
 
 ## Goal
 
@@ -28,7 +28,7 @@ This is simpler and more deterministic than the previous planner/coder/reviewer/
 | `kotlin/mcp_tool_adapter.py` | Kotlin/Gradle MCP adapter for Gradle heartbeat and Kotlin declaration lookup. |
 | `kotlin/gradle_analysis/` | Gradle/JUnit parsing, causal grouping, and fingerprints. |
 | `kotlin/coverage_analysis.py` | Kover XML gap classification, missed instruction lines, branch lines, and method counters. |
-| `kotlin/incremental_coverage.py` | Kover opportunity planning, largest-first safe/attemptable selection, strategy text, and bounded attempt orchestration. |
+| `kotlin/incremental_coverage.py` | Shared Kover bucket planning, CLI-prioritized safe/attemptable/blocked selection, strategy text, and bounded attempts. |
 | `kotlin/project_context.py` | Module discovery, project indexing, Fragment context, and verified Android resource lookup. |
 | `kotlin/static_analysis.py` | Tree-sitter extraction, strict Pydantic models, and Semgrep policy findings. |
 | `kotlin/test_code_utils/` | Generated-code extraction, merge, normalization, and optional local validation. |
@@ -79,7 +79,8 @@ Endpoint variables:
 | `TESTGEN_CHAT_MODEL` | Chat model name sent to the OpenAI-compatible endpoint. |
 | `TESTGEN_EMBEDDING_BASE_URL` | Separate embedding endpoint used only while building vector cache. |
 | `TESTGEN_ENABLE_THINKING` | Default `0`. When `1`, request payloads include thinking fields and the default managed coding server adds reasoning flags. |
-| `TESTGEN_ENABLE_GUARDRAILS` | Default `0`. Set to `1` to run deterministic generated-test validation before Gradle. Prompt guardrail text remains classification-driven in either mode. |
+| `TESTGEN_ENABLE_GUARDRAILS` | Default `1`. Set to `0` to skip deterministic generated-test validation before Gradle. Prompt guardrail text remains classification-driven in either mode. |
+| `TESTGEN_ENABLE_MEMORY_LESSONS` | Default `0`. Set to `1` to retrieve bounded classification-matched lessons into generation and repair prompts. |
 
 Server command variables used by `--auto-start-servers`:
 
@@ -283,6 +284,7 @@ Useful flags:
 |---|---|
 | `--index-root <path>` | Build one temporary dependency/vector cache for a module/project path and reuse it for all queued files in this run. |
 | `--disable-incremental-coverage` | Ignore existing tests and generate a full test file. |
+| `--coverage-buckets safe,attemptable` | Select one or more incremental buckets. Allowed values are `safe`, `attemptable`, and `blocked`; default is `safe,attemptable`. |
 | `--gradle-offline` | Run Gradle through MCP with offline mode. |
 | `--skip-model-preflight` | Skip quick `/models` check. |
 | `--enable-stuck-detector` | Enable stream repetition detection. |
@@ -310,7 +312,7 @@ Useful flags:
 16. Save memory only after final Gradle and Kover acceptance.
 17. Archive side logs and delete temporary vector cache.
 
-Model reasoning is stored in the per-source log as `MODEL REASONING` only when the server streams reasoning content. With `TESTGEN_ENABLE_THINKING=0`, the client omits `chat_template_kwargs.enable_thinking` and `thinking_budget_tokens`. When reasoning output is hidden with `MODEL_REASONING_PRINT=False`, an interactive terminal shows a live blinking `Thinking... MM:SS elapsed` banner; redirected output receives one plain status line.
+Model reasoning is stored in the per-source log as `MODEL REASONING` only when the server streams reasoning content. With `TESTGEN_ENABLE_THINKING=0`, the client omits `chat_template_kwargs.enable_thinking` and `thinking_budget_tokens`. Interactive terminals show one blinking `Processing prompt... MM:SS elapsed` line until the first model output, then one blinking `Thinking... MM:SS elapsed` line while hidden reasoning streams; both timers stop before final output/Gradle logs. Redirected output receives plain status lines.
 
 ## Existing Tests and Kover
 
@@ -318,15 +320,16 @@ When a matching test file already exists, the default mode is incremental covera
 
 1. Run a fresh Gradle/Kover baseline when the source or test is newer than the selected report.
 2. Match Kover by module, package, source filename, and task context, then map missed lines/branches to the narrowest AST declaration and public-entry path.
-3. Classify the full safe, attemptable, alternative, and blocked opportunity inventory. The detailed bucket lists are written to per-source logs and the Kover gap dashboards, not dumped to the console.
-4. Select the largest compatible safe fixture group first (`TESTGEN_INCREMENTAL_SAFE_CAP`, default `2`; `TESTGEN_INCREMENTAL_LINE_BUDGET`, default `80` missed lines). Within that group, pick the highest-weight opportunities before smaller gaps. Attemptable opportunities are not sent while safe work remains.
-5. Build trigger recipes from the selected opportunities only. Branch-only gaps complement existing call shapes rather than repeating already-covered inputs.
-6. Generate an in-memory candidate, reject unchanged/semantic duplicates, and verify that required clicks, emissions, callbacks, schedulers, or observations are present.
-7. Merge only new tests, helpers, and imports into the existing class, preserving comments and annotations around supplemental members.
-8. Run optional local guardrails, ownership-aware Gradle repair, and Kover acceptance on the merged file.
-9. Keep the candidate only when Gradle passes and the selected Kover gap improves. Restore the original file on validation/repair failure, missing Kover proof, or no delta.
-10. Record the attempt disposition, reject its fingerprint for the current run when it fails, rebuild from fresh Kover after an accepted change, and continue within the configured attempt budget.
-11. When no safe opportunities remain, select one compatible attemptable fixture group using the same largest-first selection rules and `TESTGEN_INCREMENTAL_ATTEMPTABLE_CAP` (default `2`).
+3. Classify the full safe, attemptable, alternative, and blocked opportunity inventory from Kover plus Tree-sitter/static-planner evidence. Callback spans cover actual lambda/object bodies; unknown callbacks without a verified trigger are blocked rather than false-safe.
+4. Read `--coverage-buckets` from the active `PipelineConfig`. The Kover context prints the selected values. Default selection is `safe,attemptable`; `blocked` is sent only when explicitly selected.
+5. Select the largest compatible enabled fixture group using strict priority `safe` then `attemptable` then `blocked` (`TESTGEN_INCREMENTAL_SAFE_CAP`, effective default `2`; `TESTGEN_INCREMENTAL_LINE_BUDGET`, default `80`). Only one phase/fixture group is sent in a model request.
+6. Build trigger recipes from the selected opportunities only. Branch-only gaps complement existing call shapes rather than repeating already-covered inputs.
+7. Generate an in-memory candidate, reject unchanged/semantic duplicates, and verify that required clicks, emissions, callbacks, schedulers, or observations are present.
+8. Structure-aware merge preserves unique tests, fields, helpers, imports, and required lifecycle statements while consolidating equivalent members.
+9. Run local guardrails, ownership-aware Gradle repair, and Kover acceptance on the merged file. Static validation uses one full-file repair first; a new validation category gets focused JSON patch repair, while any repeated category stops the candidate.
+10. Reuse fresh successful Gradle/Kover output from repair when the candidate did not change. Run again, with one `--rerun-tasks` fallback, only when freshness cannot be proved.
+11. Keep the candidate only when Gradle passes and the selected Kover gap improves. Restore the original file on validation/repair failure, missing Kover proof, or no delta.
+12. Record the attempt disposition, reject its fingerprint for the current run when it fails, rebuild from fresh Kover after an accepted change, and continue within the configured attempt budget.
 
 When no matching test file exists but Kover shows indirect coverage from other tests, the script can still generate a standalone `*CoverageSupplementTest.kt`. That standalone path is not used to validate merges into an existing test file.
 
@@ -361,7 +364,7 @@ The same category data is also used to:
 
 ## Validation Guardrails
 
-The guardrail catalog is shared by generation prompts, repair intent, and validator codes. Prompt guardrails are always selected by source classification. Deterministic pre-Gradle validation is opt-in with `TESTGEN_ENABLE_GUARDRAILS=1` and rejects common model mistakes before Gradle:
+The guardrail catalog is shared by generation prompts, repair intent, and validator codes. Prompt guardrails are always selected by source classification. Deterministic pre-Gradle validation is enabled by default (`TESTGEN_ENABLE_GUARDRAILS=1`; set `0` to disable) and rejects common model mistakes before Gradle:
 
 - JUnit5/instrumentation-only imports in JVM tests.
 - Missing JUnit4 imports or private test methods.
@@ -442,7 +445,7 @@ The script repairs generated tests only. Production code and unrelated tests are
 | `blocked_environment` | The required build variant, dependency, SDK, or runtime environment is unavailable. |
 | `pipeline_unresolved` | Generation, validation, merge, repair, Gradle, resource lookup, or Kover verification failed. This is not a source blocker. |
 
-Per-source blocked reports use the stable `{Source}.blocked-coverage.md` filename. Project-level Kover dashboards rebuild current safe, attemptable, blocked, excluded, and attempted-but-failed classifications from Kover and planner evidence. Accepted improvements are never reported as blocked.
+Per-source blocked reports use the stable `{Source}.blocked-coverage.md` filename. Project-level Kover dashboards call the same planner used by generation and rebuild current safe, attemptable, blocked, excluded, and attempted-but-failed classifications. Each row preserves source-specific `Why`, `Recommended action`, `What to test next`, evidence, and provenance. Accepted improvements are never reported as blocked.
 
 ## Kover HTML Reports
 
@@ -472,6 +475,8 @@ Useful flags:
 | `--include-generated` | Include generated/Hilt sources in gap dashboards. |
 
 Open `UnitTest_gen/data/htmlreport/kover_reports_index.html` for the hub linking coverage summaries and gap dashboards.
+
+Gap-dashboard module options come from every loaded module Kover XML, including fully covered modules with no gap cards. Module, bucket, and reason filters support multiple selections; no selection means all values.
 
 The generator also refreshes gap dashboards through `refresh_kover_gap_reports()` after incremental runs when a Gradle project root can be resolved.
 

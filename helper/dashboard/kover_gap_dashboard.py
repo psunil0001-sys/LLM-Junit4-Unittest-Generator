@@ -45,6 +45,7 @@ def render_kover_gap_dashboard(model: dict) -> str:
       background: #101722; color: var(--text); border: 1px solid var(--border);
       border-radius: 8px; padding: 8px 10px; min-width: 180px;
     }}
+    .filters select[multiple] {{ min-height: 96px; }}
     .chip {{ display: inline-block; border-radius: 999px; padding: 2px 8px; font-size: 0.75rem;
       margin: 2px 4px 2px 0; border: 1px solid var(--border); color: var(--muted); }}
     .chip.cat {{ border-color: #3d5a80; color: #9ec5fe; }}
@@ -90,9 +91,9 @@ def render_kover_gap_dashboard(model: dict) -> str:
     </div>
     <div class="filters">
       <input id="search" type="search" placeholder="Search file, entry, reason..." />
-      <select id="moduleFilter"><option value="">All modules</option></select>
-      <select id="bucketFilter"><option value="">All buckets</option></select>
-      <select id="reasonFilter"><option value="">All reason codes</option></select>
+      <select id="moduleFilter" multiple aria-label="Modules"></select>
+      <select id="bucketFilter" multiple aria-label="Buckets"></select>
+      <select id="reasonFilter" multiple aria-label="Reason codes"></select>
     </div>
     <h2>Source files</h2>
     <div id="files"></div>
@@ -162,6 +163,7 @@ def render_kover_gap_dashboard(model: dict) -> str:
       buckets.add(item.bucket);
       reasons.add(item.reason_code);
     }});
+    (model.modules || []).forEach(module => modules.add(module));
     (model.files || []).forEach(file => {{
       if (file.module) modules.add(file.module);
     }});
@@ -182,18 +184,22 @@ def render_kover_gap_dashboard(model: dict) -> str:
       return bucket || '';
     }}
 
+    function selectedValues(select) {{
+      return new Set([...select.selectedOptions].map(option => option.value));
+    }}
+
     function renderFiles() {{
       const q = document.getElementById('search').value.toLowerCase();
-      const module = moduleFilter.value;
-      const bucket = bucketFilter.value;
-      const reason = reasonFilter.value;
+      const selectedModules = selectedValues(moduleFilter);
+      const selectedBuckets = selectedValues(bucketFilter);
+      const selectedReasons = selectedValues(reasonFilter);
       const filesEl = document.getElementById('files');
       filesEl.innerHTML = '';
       (model.files || []).forEach(file => {{
-        if (module && file.module !== module) return;
+        if (selectedModules.size && !selectedModules.has(file.module)) return;
         const items = (file.items || []).filter(item => {{
-          if (bucket && item.bucket !== bucket) return false;
-          if (reason && item.reason_code !== reason) return false;
+          if (selectedBuckets.size && !selectedBuckets.has(item.bucket)) return false;
+          if (selectedReasons.size && !selectedReasons.has(item.reason_code)) return false;
           const hay = [file.name, file.module, file.path, item.entry, item.why, item.fix, item.reason_code].join(' ').toLowerCase();
           return !q || hay.includes(q);
         }});
@@ -218,8 +224,9 @@ def render_kover_gap_dashboard(model: dict) -> str:
             '<span class="chip">' + esc(item.reason_code) + '</span></h4>' +
             '<p><strong>Lines:</strong> ' + esc(item.lines_text) + ' · <strong>Branches:</strong> ' + esc(item.branches_text) + '</p>' +
             '<p><strong>Why:</strong> ' + esc(item.why) + '</p>' +
-            '<p><strong>How to fix:</strong> ' + esc(item.fix) + '</p>' +
+            '<p><strong>Recommended action:</strong> ' + esc(item.fix) + '</p>' +
             '<p><strong>What to test next:</strong> ' + esc(item.next_test) + '</p>' +
+            (item.provenance ? '<p><strong>Provenance:</strong> ' + esc(item.provenance) + '</p>' : '') +
             (item.attempt_count ? '<p><strong>Attempts:</strong> ' + esc(item.attempt_count) + '</p>' : '') +
             (item.evidence ? '<details class="evidence"><summary>Evidence</summary>' + esc(item.evidence) + '</details>' : '');
           body.appendChild(ac);

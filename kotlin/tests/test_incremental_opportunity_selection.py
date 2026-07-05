@@ -6,10 +6,13 @@
 from __future__ import annotations
 
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
-from UnitTest_gen.kotlin.coverage_analysis import CoverageGap
+from UnitTest_gen.core.pipeline_config import get_config
+from UnitTest_gen.kotlin.coverage_analysis import CoverageGap, coverage_gap_context
 from UnitTest_gen.kotlin.attempted_failed_report import (
     DISPOSITION_PIPELINE_UNRESOLVED,
     load_blocked_report,
@@ -22,6 +25,7 @@ from UnitTest_gen.kotlin.incremental_coverage import (
 )
 from UnitTest_gen.kotlin.kotlin_analysis import classify_source
 from UnitTest_gen.kotlin.strategy_contracts import select_strategy_contracts
+from UnitTest_gen.kotlin.test_code_utils.validate import normalize_kotlin_test_code
 
 
 def _opp(
@@ -49,6 +53,40 @@ def _weight(item: CoverageOpportunity) -> int:
 
 
 class IncrementalOpportunitySelectionTest(unittest.TestCase):
+    def test_kover_context_prints_cli_bucket_selection(self):
+        gap = CoverageGap("Sample.kt", "sample", [2], [], [], [], (1, 1), (0, 0), {})
+        context = coverage_gap_context(
+            gap,
+            "class Sample {\n fun run() = Unit\n}",
+            coverage_buckets=("attemptable", "blocked"),
+        )
+        self.assertIn("CLI coverage buckets: attemptable, blocked", context)
+
+    def test_blocked_bucket_requires_explicit_selection(self):
+        source = """
+class SampleViewModel : ViewModel() {
+    fun load() {
+        if (BuildConfig.ENABLED) publish()
+    }
+}
+"""
+        line = next(i for i, text in enumerate(source.splitlines(), 1) if "BuildConfig" in text)
+        gap = CoverageGap("SampleViewModel.kt", "sample", [], [line], [], [], (0, 1), (1, 1), {})
+        default_config = get_config()
+        with patch(
+            "UnitTest_gen.kotlin.incremental_coverage.get_config",
+            return_value=replace(default_config, coverage_buckets=("safe", "attemptable")),
+        ):
+            default_plan = build_coverage_opportunity_plan(source, gap, {"viewmodel"})
+        self.assertFalse(default_plan["selected_blocked"])
+
+        with patch(
+            "UnitTest_gen.kotlin.incremental_coverage.get_config",
+            return_value=replace(default_config, coverage_buckets=("blocked",)),
+        ):
+            blocked_plan = build_coverage_opportunity_plan(source, gap, {"viewmodel"})
+        self.assertEqual("fixed_build_variant", blocked_plan["selected_blocked"][0].fixture)
+
     def test_declared_activity_and_application_categories_are_emitted(self):
         activity = classify_source("@AndroidEntryPoint class MainActivity : AppCompatActivity()")
         application = classify_source("@HiltAndroidApp class App : Application()")
@@ -116,6 +154,21 @@ class SampleViewModel : ViewModel() {
         self.assertEqual([after], plan["blocked"][0].lines)
         self.assertEqual("uncontrolled_coroutine_body", plan["blocked"][0].fixture)
 
+    def test_countdown_opportunity_uses_callback_recipe(self):
+        source = """
+class SampleViewModel : ViewModel() {
+    fun setPairing(active: Boolean) {
+        if (active) startCountdown(onFinish = { publishDone() })
+    }
+}
+"""
+        line = next(i for i, text in enumerate(source.splitlines(), 1) if "publishDone" in text)
+        gap = CoverageGap("SampleViewModel.kt", "sample", [line], [], [], [], (1, 1), (0, 0), {})
+        plan = build_coverage_opportunity_plan(source, gap, classify_source(source).categories)
+        opportunity = plan["selected_attemptable"][0]
+        self.assertIn("countdown", opportunity.trigger_recipe.lower())
+        self.assertNotEqual("direct public execution", opportunity.trigger_recipe)
+
     def test_private_callee_dispatcher_blocks_following_private_helper_lines(self):
         source = """
 class SampleViewModel : ViewModel() {
@@ -132,6 +185,89 @@ class SampleViewModel : ViewModel() {
         plan = build_coverage_opportunity_plan(source, gap, classify_source(source).categories)
         self.assertFalse(plan["selected_safe"])
         self.assertEqual("uncontrolled_coroutine_body", plan["blocked"][0].fixture)
+
+    def test_toolbar_menu_item_click_is_not_classified_as_view_click(self):
+        source = """
+class SampleFragment : Fragment() {
+    override fun onViewCreated(view: View, state: Bundle?) { setupToolbar() }
+    private fun setupToolbar() {
+        toolbar.setMenuItems(listOf(MenuItem.Builder(context).setOnClickListener { logout() }.build()))
+    }
+    private fun logout() { session.clear() }
+}
+"""
+        line = next(i for i, text in enumerate(source.splitlines(), 1) if "session.clear" in text)
+        gap = CoverageGap("SampleFragment.kt", "sample", [line], [], [], [], (1, 1), (0, 0), {})
+        plan = build_coverage_opportunity_plan(source, gap, classify_source(source).categories)
+        selected = plan["selected_safe"] + plan["selected_attemptable"]
+        self.assertEqual("verified_menu_callback", selected[0].fixture)
+        self.assertEqual("attemptable", selected[0].bucket)
+        self.assertIn("setMenuItems", selected[0].trigger_recipe)
+
+    def test_unknown_callback_without_public_trigger_is_blocked(self):
+        source = """
+class SampleViewModel : ViewModel() {
+    fun connect() {
+        collaborator.register(SdkCallback { value -> consume(value) })
+    }
+}
+"""
+        line = next(i for i, text in enumerate(source.splitlines(), 1) if "consume(value)" in text)
+        gap = CoverageGap("SampleViewModel.kt", "sample", [line], [], [], [], (1, 1), (0, 0), {})
+        plan = build_coverage_opportunity_plan(source, gap, classify_source(source).categories)
+        self.assertFalse(plan["selected_safe"] or plan["selected_attemptable"])
+        self.assertEqual("unverified_callback", plan["blocked"][0].fixture)
+
+    def test_remove_callbacks_call_is_not_a_callback_body(self):
+        source = """
+class SampleFragment : Fragment() {
+    override fun onPause() {
+        super.onPause()
+        handler.removeCallbacks(refreshRunnable)
+    }
+}
+"""
+        line = next(i for i, text in enumerate(source.splitlines(), 1) if "removeCallbacks" in text)
+        gap = CoverageGap("SampleFragment.kt", "sample", [line], [], [], [], (1, 1), (0, 0), {})
+        plan = build_coverage_opportunity_plan(source, gap, classify_source(source).categories)
+        self.assertFalse(any(item.fixture == "unverified_callback" for item in plan["blocked"]))
+        self.assertEqual("public_method", plan["selected_attemptable"][0].fixture)
+
+    def test_delegated_viewmodel_observer_without_same_instance_seam_is_blocked(self):
+        source = """
+class SampleFragment : Fragment() {
+    private val viewModel: SampleViewModel by viewModels()
+    override fun onViewCreated(view: View, state: Bundle?) {
+        viewModel.state.observe(viewLifecycleOwner) { showResult() }
+    }
+    private fun showResult() { binding.result.visibility = View.VISIBLE }
+}
+"""
+        line = next(i for i, text in enumerate(source.splitlines(), 1) if "binding.result" in text)
+        gap = CoverageGap("SampleFragment.kt", "sample", [line], [], [], [], (1, 1), (0, 0), {})
+        plan = build_coverage_opportunity_plan(source, gap, classify_source(source).categories)
+        self.assertFalse(plan["selected_safe"] or plan["selected_attemptable"])
+        self.assertEqual("delegated_viewmodel_observer", plan["blocked"][0].fixture)
+
+    def test_live_data_viewmodel_normalization_adds_correct_executor_rule(self):
+        source = "class SampleViewModel : ViewModel() { val state = MutableLiveData<String>() }"
+        test = "package sample\nimport org.junit.Test\nclass SampleViewModelTest { @Test fun runs() {} }"
+        normalized = normalize_kotlin_test_code(test, source_code=source)
+        self.assertIn("androidx.arch.core.executor.testing.InstantTaskExecutorRule", normalized)
+        self.assertIn("val instantTaskExecutorRule = InstantTaskExecutorRule()", normalized)
+
+    def test_unused_private_default_argument_branch_is_blocked(self):
+        source = """
+class Screen {
+    fun open() { show(value = "fixed") }
+    private fun show(value: String = "default") { publish(value) }
+}
+"""
+        line = next(i for i, text in enumerate(source.splitlines(), 1) if "private fun show" in text)
+        gap = CoverageGap("Screen.kt", "sample", [line], [], [], [], (1, 1), (0, 0), {})
+        plan = build_coverage_opportunity_plan(source, gap, set())
+        self.assertFalse(plan["selected_safe"] or plan["selected_attemptable"])
+        self.assertEqual("unused_private_default_argument", plan["blocked"][0].fixture)
 
     def test_picks_fixture_with_highest_aggregate_weight(self):
         opportunities = [

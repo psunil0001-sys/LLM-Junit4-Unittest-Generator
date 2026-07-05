@@ -49,6 +49,7 @@ class State
             "import org.mockito.Mockito\nclass Broken { fun run() { = true } }"
         )
         self.assertEqual("complete", report.status)
+        self.assertTrue(any("invalid_kotlin_syntax" in issue for issue in report.validation_errors))
 
 
 if __name__ == "__main__":

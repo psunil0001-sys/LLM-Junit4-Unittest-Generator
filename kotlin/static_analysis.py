@@ -292,10 +292,20 @@ def analyze_kotlin_code(
         for scan in scans
         for item in scan.findings
     )
+    syntax_error_lines = sorted(
+        {
+            node.start_point[0] + 1
+            for node in walk_ast(parse_kotlin_ast(source_code or ""))
+            if node.type == "ERROR"
+        }
+    )
     validation_errors = tuple(
         f"invalid_kotlin_syntax: malformed backtick function declaration at line {line_no}"
         for line_no, line in enumerate((source_code or "").splitlines(), start=1)
         if re.search(r"\bfun\s+`[^`]*\([^`]*\)`\s*\{", line)
+    ) + tuple(
+        f"invalid_kotlin_syntax: Tree-sitter found malformed Kotlin near line {line_no}"
+        for line_no in syntax_error_lines
     )
     report = KotlinStaticAnalysisReport(
         schema_version=REPORT_SCHEMA_VERSION,
@@ -765,8 +775,18 @@ def _extract_callbacks(source_code: str, functions: tuple[KotlinFunctionInfo, ..
         ]
         kind = next((name for name in callee_identifiers if name in callback_names), "")
         if not kind:
-            kind = next((name for name in callee_identifiers if "Callback" in name), "")
+            kind = next((name for name in callee_identifiers if name.endswith("Callback")), "")
         if not kind:
+            continue
+        callback_body = next(
+            (
+                child
+                for child in walk_ast(node)
+                if child is not node and child.type in {"lambda_literal", "object_literal"}
+            ),
+            None,
+        )
+        if callback_body is None:
             continue
         identifiers = tuple(
             sorted(
@@ -782,7 +802,7 @@ def _extract_callbacks(source_code: str, functions: tuple[KotlinFunctionInfo, ..
                 kind=kind,
                 function_name=_owner_for_span(functions, node.start_point[0] + 1),
                 called_identifiers=identifiers,
-                span=_span(node),
+                span=_span(callback_body),
             )
         )
     return [

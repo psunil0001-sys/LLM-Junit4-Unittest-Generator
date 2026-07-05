@@ -386,6 +386,7 @@ def coverage_gap_context(
     selected_branch_lines: list[int] | None = None,
     selected_methods: list[str] | None = None,
     include_private_with_public_path: bool = False,
+    coverage_buckets: tuple[str, ...] | list[str] | None = None,
 ) -> str:
     source_lines = source_code.splitlines()
     prompt_missed_lines = gap.missed_lines if selected_lines is None else selected_lines
@@ -448,6 +449,7 @@ def coverage_gap_context(
             f"Coverage gap type: {gap_type}",
             f"Line coverage missed/covered: {line_missed}/{line_covered}",
             f"Branch coverage missed/covered: {branch_missed}/{branch_covered}",
+            "CLI coverage buckets: " + (", ".join(coverage_buckets or ()) or "none"),
     ]
     if cluster_plan_context:
         parts.extend(["", cluster_plan_context])

@@ -32,7 +32,7 @@ class PipelineConfig:
     llama_server_url: str = "http://127.0.0.1:8080/slots/0"
     save_llama_slot_bin: bool = False
     print_prompts_in_terminal: bool = False
-    model_reasoning_print: bool = True
+    model_reasoning_print: bool = False
     request_sampler_log: bool = True
     request_temperature: float = 0.1
     request_top_p: float = 0.95
@@ -79,6 +79,7 @@ class PipelineConfig:
     incremental_coverage_rounds: int = 5
     incremental_line_budget: int = 80
     incremental_safe_cap: int = 4
+    coverage_buckets: tuple[str, ...] = ("safe", "attemptable")
 
     # Gradle MCP
     gradle_heartbeat_seconds: int = 30
@@ -90,7 +91,7 @@ class PipelineConfig:
 
     # Feature gates
     enable_guardrails: bool = True
-    enable_memory_lessons: bool = True
+    enable_memory_lessons: bool = False
     prompt_slices_enabled: bool = True
 
 
@@ -175,7 +176,7 @@ def load_config_from_env() -> PipelineConfig:
         semgrep_core_executable=os.environ.get("SEMGREP_CORE_EXECUTABLE", ""),
         semgrep_cache_dir=os.environ.get("TESTGEN_SEMGREP_CACHE_DIR", ""),
         enable_guardrails=env_flag("TESTGEN_ENABLE_GUARDRAILS", "1"),
-        enable_memory_lessons=env_flag("TESTGEN_ENABLE_MEMORY_LESSONS", "1"),
+        enable_memory_lessons=env_flag("TESTGEN_ENABLE_MEMORY_LESSONS", "0"),
         prompt_slices_enabled=env_flag("TESTGEN_PROMPT_SLICES", "1"),
     )
 
@@ -198,6 +199,8 @@ def apply_cli_args(config: PipelineConfig, args: argparse.Namespace) -> Pipeline
         updates["incremental_coverage_enabled"] = False
     if getattr(args, "incremental_coverage_rounds", None) is not None:
         updates["incremental_coverage_rounds"] = args.incremental_coverage_rounds
+    if getattr(args, "coverage_buckets", None):
+        updates["coverage_buckets"] = tuple(args.coverage_buckets)
     if getattr(args, "server_startup_timeout", None) is not None:
         updates["server_startup_timeout"] = args.server_startup_timeout
     if getattr(args, "index_root", None):

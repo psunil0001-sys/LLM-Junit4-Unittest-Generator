@@ -44,6 +44,12 @@ def variant_name_from_xml_path(path: Path) -> str:
     return stem
 
 
+def module_name_from_kover_xml(root: Path, path: Path) -> str:
+    relative_parts = path.resolve().relative_to(root.resolve()).parts
+    build_index = relative_parts.index("build")
+    return "/".join(relative_parts[:build_index])
+
+
 def discover_kover_xml_groups(root: Path) -> dict[str, list[Path]]:
     """Group Kover XML files under module build/reports/kover/ by filename variant suffix."""
     groups: dict[str, set[Path]] = {}
@@ -123,8 +129,8 @@ def _opportunity_report_item(opportunity, bucket: str) -> dict:
     blocked_reason = getattr(opportunity, "blocked_reason", "") or ""
     if bucket in {"blocked", "excluded"} or blocked_reason:
         blocked_item = item_from_opportunity("", opportunity)
-        why_source = blocked_item.reason
-        fix = blocked_item.recommended_fix
+        why_source = getattr(opportunity, "reason", "") or blocked_item.reason
+        fix = getattr(opportunity, "action", "") or blocked_item.recommended_fix
         next_test = blocked_item.suggested_test_after_fix
         evidence = blocked_item.evidence
         code = reason_code(blocked_item.reason)
@@ -137,6 +143,11 @@ def _opportunity_report_item(opportunity, bucket: str) -> dict:
     entry = " -> ".join(opportunity.coverage_path or opportunity.entry_points or [opportunity.name])
     lines = sorted(set(getattr(opportunity, "lines", []) or []))
     branches = sorted(set(getattr(opportunity, "branches", []) or []))
+    static_basis = (
+        f"Kover reports this gap at lines {compact_ranges(lines)} and branches {compact_ranges(branches)}; "
+        f"static planning maps it to {entry} with fixture {getattr(opportunity, 'fixture', '') or 'unspecified'}."
+    )
+    evidence = " ".join(part for part in (evidence, static_basis) if part)
     return {
         "fingerprint": opportunity_fingerprint(opportunity),
         "bucket": bucket,
@@ -152,6 +163,7 @@ def _opportunity_report_item(opportunity, bucket: str) -> dict:
         "fix": fix,
         "next_test": next_test,
         "evidence": evidence,
+        "provenance": "Kover + Tree-sitter/static planner",
     }
 
 
@@ -316,13 +328,14 @@ def build_kover_gap_report(
         )
 
     planner_line_pct = round(len(classified_lines) / total_missed_lines * 100.0, 1) if total_missed_lines else 100.0
-    module_hints = sorted({file_row["module"] for file_row in files})
+    module_hints = sorted({module_name_from_kover_xml(root, path) for path in xml_paths})
     model = {
         "variant": variant,
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "root": str(root),
         "kover_xml": str(xml_paths[0]),
         "kover_xmls": [str(path) for path in xml_paths],
+        "modules": module_hints,
         "summary": {
             "missed_lines": total_missed_lines,
             "missed_branches": total_missed_branches,

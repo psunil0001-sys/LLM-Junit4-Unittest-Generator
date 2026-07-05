@@ -5,7 +5,9 @@ import difflib
 import json
 import os
 import re
+import sys
 import threading
+import time
 from pathlib import Path
 
 import requests
@@ -48,7 +50,7 @@ LLAMA_SERVER_URL = os.environ.get("TESTGEN_LLAMA_SERVER_URL", "http://127.0.0.1:
 SAVE_LLAMA_SLOT_BIN = os.environ.get("TESTGEN_SAVE_LLAMA_SLOT_BIN", "0").lower() in {"1", "true", "yes", "on"}
 # Set to True to print every generation and repair prompt sent to the model.
 PRINT_PROMPTS_IN_TERMINAL = False
-MODEL_REASONING_PRINT = False
+MODEL_REASONING_PRINT = True
 REASONING_FALLBACK_DETECTOR = None
 STREAM_RETRY_INSTRUCTION_BUILDER = None
 MODEL_STUCK_DETECTOR_ENABLED = True
@@ -447,6 +449,65 @@ def estimate_messages_tokens(messages) -> tuple[int, int]:
     return estimate_stream_tokens(text), len(text)
 
 
+class _LiveElapsedStatus:
+    def __init__(self, label: str, ansi: str, category: str):
+        self._label = label
+        self._ansi = ansi
+        self._category = category
+        self._started_at = 0.0
+        self._stop = threading.Event()
+        self._thread = None
+        self._interactive = sys.stdout.isatty()
+        self._finished = False
+
+    @staticmethod
+    def _elapsed(seconds: int) -> str:
+        minutes, seconds = divmod(seconds, 60)
+        hours, minutes = divmod(minutes, 60)
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}" if hours else f"{minutes:02d}:{seconds:02d}"
+
+    def start(self):
+        if self._finished or self._thread or self._started_at:
+            return
+        self._started_at = time.monotonic()
+        if not self._interactive:
+            log_message("")
+            log_message(f"{self._label}...", category=self._category)
+            return
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def _run(self):
+        while not self._stop.is_set():
+            elapsed = self._elapsed(int(time.monotonic() - self._started_at))
+            sys.stdout.write(f"\r{self._ansi}{self._label}... {elapsed} elapsed\033[0m")
+            sys.stdout.flush()
+            self._stop.wait(1)
+
+    def stop(self):
+        if not self._started_at:
+            return
+        self._finished = True
+        self._stop.set()
+        if self._thread:
+            self._thread.join(timeout=2)
+            elapsed = self._elapsed(int(time.monotonic() - self._started_at))
+            sys.stdout.write(f"\033[0m\r\033[2K{self._label}... {elapsed} elapsed\n")
+            sys.stdout.flush()
+        self._thread = None
+        self._started_at = 0.0
+
+
+def _stream_with_status_cleanup(response, *statuses):
+    try:
+        yield from response
+    finally:
+        for status in statuses:
+            status.stop()
+
+
 def stream_chat_completion_once(messages, temperature=None, extra_body=None):
     try:
         config = get_config()
@@ -518,22 +579,28 @@ def stream_chat_completion_once(messages, temperature=None, extra_body=None):
         console=True,
     )
 
-    response = client.chat.completions.create(
-        model=CHAT_MODEL,
-        messages=messages,
-        temperature=request_temperature,
-        top_p=request_top_p,
-        stream=True,
-        extra_body=merged_extra_body,
-    )
+    prompt_status = _LiveElapsedStatus("Processing prompt", "\033[5;38;5;220m", "context")
+    prompt_status.start()
+    try:
+        response = client.chat.completions.create(
+            model=CHAT_MODEL,
+            messages=messages,
+            temperature=request_temperature,
+            top_p=request_top_p,
+            stream=True,
+            extra_body=merged_extra_body,
+        )
+    except Exception:
+        prompt_status.stop()
+        raise
 
     raw_chunks = []
     reasoning_chunks = []
     last_stuck_check_reasoning_len = 0
     last_stuck_check_content_len = 0
 
-    thinking_shown = False
-    for chunk in response:
+    reasoning_status = _LiveElapsedStatus("Thinking", "\033[5;38;5;50m", "reasoning")
+    for chunk in _stream_with_status_cleanup(response, prompt_status, reasoning_status):
         try:
             if not chunk.choices or len(chunk.choices) == 0:
                 continue
@@ -549,16 +616,18 @@ def stream_chat_completion_once(messages, temperature=None, extra_body=None):
             content = getattr(delta, "content", None)
             
             if reasoning:
+                prompt_status.stop()
                 reasoning_text = str(reasoning)
                 reasoning_chunks.append(reasoning_text)
                 log_message(reasoning_text, category="reasoning", end="", console=MODEL_REASONING_PRINT)
                 if MODEL_REASONING_PRINT:
                     pass
-                elif not thinking_shown:
-                    log_message("Thinking...", category="reasoning")
-                    thinking_shown = True
+                else:
+                    reasoning_status.start()
 
             if content:
+                prompt_status.stop()
+                reasoning_status.stop()
                 log_message(content, category="code", end="")
                 raw_chunks.append(content)
 

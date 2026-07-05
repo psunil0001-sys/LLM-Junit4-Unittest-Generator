@@ -290,6 +290,7 @@ def generate_coverage_supplement_test_streaming(
     if opportunity_plan is not None:
         from UnitTest_gen.kotlin.prompting.rules import _fixture_ids_from_opportunity_plan
         resolved_fixture_ids = _fixture_ids_from_opportunity_plan(opportunity_plan) or resolved_fixture_ids
+    selected_blocked = bool((opportunity_plan or {}).get("selected_blocked"))
     if not resolved_fixture_ids:
         resolved_fixture_ids = _fixture_ids_from_classification(source_categories, source_code)
     final_rule_tail = build_generation_rule_tail(
@@ -321,9 +322,8 @@ def generate_coverage_supplement_test_streaming(
         else (
             "- Treat this file as an in-memory merge candidate for the existing test file, not as a standalone coverage result.\n"
             "- Keep the merge candidate compile-safe, but design every new test/helper function to be merge-compatible with the existing test class.\n"
-            "- During merge, only new test/helper functions are inserted into the existing test class; duplicate setUp/tearDown and temporary fields/properties are discarded.\n"
-            "- Therefore, merged test functions must rely only on members/helpers already present in the existing test file, or on uniquely named helper functions you include in this supplemental class.\n"
-            "- Do not make coverage depend on supplemental-only fields, supplemental-only @Before setup, or supplemental-only @After cleanup unless equivalent members already exist in the existing test file.\n"
+            "- Structure-aware merge preserves unique tests, helpers, fields, imports, and required @Before/@After statements while consolidating equivalent existing members.\n"
+            "- Keep supplemental member names unique unless they intentionally extend an equivalent existing lifecycle block.\n"
             "- Kover improvement is measured only after the candidate has been merged into the existing test file.\n"
         )
     )
@@ -342,9 +342,12 @@ def generate_coverage_supplement_test_streaming(
         "- Use the existing test file as already-covered context and create new, non-duplicate tests.\n"
         "- Choose selected opportunities that the deterministic strategy marks as reachable through stable public or verified fixture setup.\n"
         "- Generate as many meaningful, compile-safe supplemental tests as the verified context supports for the selected opportunity plan, using compact scenario/table-style tests with precise assertions.\n"
-        "- Do not generate no-op tests for blocked opportunities; if no useful opportunity is selected, keep the candidate minimal and coverage-focused rather than broad.\n"
-        "- Ignore blocked opportunities even when retrieved memory or generic rules mention similar coroutine, static, exception, or private-path patterns.\n"
-        "- Do not generate immediate pre-launch state assertions for Kover lines inside uncontrolled Dispatchers.IO, real delay, static/platform, or checked-exception paths.\n"
+        + (
+            "- The CLI explicitly selected blocked opportunities. Attempt only their documented public path; do not use reflection, private calls, invented seams, or production edits.\n"
+            if selected_blocked
+            else "- Do not generate no-op tests for blocked opportunities; ignore them even when memory or generic rules mention similar patterns.\n"
+        )
+        + "- Do not generate immediate pre-launch state assertions for Kover lines inside uncontrolled Dispatchers.IO, real delay, static/platform, or checked-exception paths.\n"
         "- For catch/fallback gaps, use only verified throwable shapes and deterministic execution paths; otherwise skip the cluster.\n"
         "- For branch-only gaps, write focused branch probes that complement already-covered success paths.\n"
         "- For Fragment lifecycle gaps, after activityController.stop() or onStop() assert Lifecycle.State.CREATED (or lower), not STARTED or RESUMED.\n"

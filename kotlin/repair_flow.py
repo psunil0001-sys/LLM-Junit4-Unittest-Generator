@@ -549,6 +549,7 @@ async def verify_and_repair_test_with_mcp(
     gradle_tasks=None,
     source_risk_context="",
     record_successful_generation: bool = True,
+    verification_result: dict | None = None,
 ):
     source_profile = classify_source(source_code)
     source_categories = source_profile.categories
@@ -584,38 +585,24 @@ async def verify_and_repair_test_with_mcp(
 
             final_test_code = await mcp_tools.read_file(output_file_path)
             log_block("FINAL VERIFIED TEST CODE", final_test_code, category="code", console=False)
-
-            log_message("🧪 Running final Gradle verification...", category="gradle")
-            final_gradle_output = await run_gradle_with_heartbeat(
-                mcp_tools,
-                project_root,
-                offline=gradle_offline,
-                tasks=gradle_tasks,
-            )
-            log_block("FINAL GRADLE VERIFICATION OUTPUT", final_gradle_output, category="gradle", console=False)
-
-            if is_gradle_success(final_gradle_output):
-                if record_successful_generation:
-                    remember_successful_generation_if_high_quality(
-                        class_name,
-                        final_test_code,
-                        output_file_path,
-                        source_code=source_code,
-                    )
-                for repair in applied_repairs:
-                    add_repair_lesson(
-                        repair["group_key"],
-                        patch=repair.get("patch"),
-                        fixed_code=repair.get("fixed_code"),
-                        source_categories=source_categories,
-                        repair_categories=repair.get("repair_categories"),
-                    )
-                log_message("✅ Final Gradle verification passed.", category="success")
-                return True
-
-            log_message("⚠️ Final Gradle verification failed unexpectedly.", category="warning")
-            log_message(final_gradle_output or "No Gradle output captured.", category="gradle")
-            return False
+            if verification_result is not None:
+                verification_result["gradle_output"] = gradle_output
+            if record_successful_generation:
+                remember_successful_generation_if_high_quality(
+                    class_name,
+                    final_test_code,
+                    output_file_path,
+                    source_code=source_code,
+                )
+            for repair in applied_repairs:
+                add_repair_lesson(
+                    repair["group_key"],
+                    patch=repair.get("patch"),
+                    fixed_code=repair.get("fixed_code"),
+                    source_categories=source_categories,
+                    repair_categories=repair.get("repair_categories"),
+                )
+            return True
 
         groups = group_gradle_errors(gradle_output)
         groups = group_junit_failures_by_report(

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import re
 import textwrap
+from difflib import SequenceMatcher
 
 from UnitTest_gen.core.logging_utils import log_message
 
@@ -204,6 +205,125 @@ def is_function_member(lines: list[str]) -> bool:
 def is_test_function_member(lines: list[str]) -> bool:
     return any(re.search(r"@\s*(?:org\.junit\.)?Test\b", line) for line in lines) and is_function_member(lines)
 
+
+def _member_text(member: list[str]) -> str:
+    return "".join(member).strip("\n")
+
+
+def _function_body_span(member_text: str) -> tuple[int, int] | None:
+    opening = member_text.find("{")
+    if opening == -1:
+        return None
+    depth = 0
+    for index in range(opening, len(member_text)):
+        char = member_text[index]
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return opening + 1, index
+    return None
+
+
+def _split_function_statements(body: str) -> list[str]:
+    """Split a Kotlin function body at top-level statement boundaries."""
+    lines = body.strip("\n").splitlines(keepends=True)
+    statements: list[str] = []
+    current: list[str] = []
+    braces = parentheses = brackets = 0
+
+    for line in lines:
+        current.append(line)
+        clean = strip_kotlin_line_strings(line)
+        braces += clean.count("{") - clean.count("}")
+        parentheses += clean.count("(") - clean.count(")")
+        brackets += clean.count("[") - clean.count("]")
+        stripped = clean.rstrip()
+        continues = stripped.endswith((".", ",", "=", "->", "&&", "||"))
+        if braces == parentheses == brackets == 0 and not continues and stripped.strip():
+            statements.append("".join(current).strip("\n"))
+            current = []
+
+    if current and "".join(current).strip():
+        statements.append("".join(current).strip("\n"))
+    return statements
+
+
+def _statement_key(statement: str) -> str:
+    statement = re.sub(r"//[^\n]*", "", statement)
+    return re.sub(r"\s+", "", statement)
+
+
+def _merge_function_members(existing: str, supplemental: str, required_names: set[str]) -> str:
+    existing_span = _function_body_span(existing)
+    supplemental_span = _function_body_span(supplemental)
+    if not existing_span or not supplemental_span:
+        return existing
+
+    existing_statements = _split_function_statements(existing[slice(*existing_span)])
+    supplemental_statements = _split_function_statements(supplemental[slice(*supplemental_span)])
+    existing_keys = [_statement_key(item) for item in existing_statements]
+    supplemental_statements = [
+        statement
+        for statement in supplemental_statements
+        if _statement_key(statement) in existing_keys
+        or any(re.search(r"\b" + re.escape(name) + r"\b", statement) for name in required_names)
+    ]
+    supplemental_keys = [_statement_key(item) for item in supplemental_statements]
+    matcher = SequenceMatcher(a=existing_keys, b=supplemental_keys, autojunk=False)
+
+    merged: list[str] = []
+    for tag, first_start, first_end, second_start, second_end in matcher.get_opcodes():
+        if tag in {"equal", "delete"}:
+            merged.extend(existing_statements[first_start:first_end])
+        elif tag == "insert":
+            merged.extend(supplemental_statements[second_start:second_end])
+        else:  # Preserve both non-equivalent blocks; later validation catches conflicts.
+            merged.extend(existing_statements[first_start:first_end])
+            merged.extend(supplemental_statements[second_start:second_end])
+
+    indent_match = re.search(r"\n([ \t]+)\S", existing[slice(*existing_span)])
+    indent = indent_match.group(1) if indent_match else "        "
+    body = "\n" + "\n\n".join(textwrap.indent(textwrap.dedent(item), indent) for item in merged) + "\n    "
+    return existing[:existing_span[0]] + body + existing[existing_span[1]:]
+
+
+def _merge_lifecycle_members(
+    existing_test_code: str,
+    supplemental_test_code: str,
+    required_names: set[str],
+) -> str:
+    """Merge duplicate JUnit lifecycle functions while preserving statement order."""
+    existing_body = extract_class_body_members(existing_test_code)
+    supplemental_body = extract_class_body_members(supplemental_test_code)
+    existing_members = split_top_level_class_members(existing_body)
+    supplemental_members = split_top_level_class_members(supplemental_body)
+    lifecycle = {"setUp", "setup", "tearDown", "teardown"}
+
+    replacements: list[tuple[str, str]] = []
+    existing_by_name = {
+        class_member_name(member): _member_text(member)
+        for member in existing_members
+        if is_function_member(member)
+    }
+    for member in supplemental_members:
+        name = class_member_name(member)
+        if name not in lifecycle or name not in existing_by_name:
+            continue
+        supplemental_text = _member_text(member)
+        existing_text = existing_by_name[name]
+        if not re.search(r"@(?:Before|After)\b", existing_text + supplemental_text):
+            continue
+        merged_text = _merge_function_members(existing_text, supplemental_text, required_names)
+        if merged_text != existing_text:
+            replacements.append((existing_text, merged_text))
+
+    merged = existing_test_code
+    for old, new in replacements:
+        merged = merged.replace(old, new, 1)
+    return merged
+
 def split_top_level_class_members(class_body: str) -> list[list[str]]:
     lines = class_body.splitlines(keepends=True)
     members = []
@@ -267,6 +387,7 @@ def build_supplemental_merge_report(
     added_helpers = []
     skipped_duplicate_tests = []
     skipped_duplicate_helpers = []
+    added_variables = []
     skipped_variables = []
     skipped_unknown_members = []
 
@@ -274,7 +395,11 @@ def build_supplemental_merge_report(
         name = class_member_name(member)
         if not is_function_member(member):
             if name:
-                skipped_variables.append(name)
+                if name in existing_names:
+                    skipped_variables.append(name)
+                else:
+                    kept_members.append(_member_text(member))
+                    added_variables.append(name)
             else:
                 stripped = "".join(member).strip()
                 if stripped:
@@ -315,6 +440,7 @@ def build_supplemental_merge_report(
         "member_blocks": [member.strip("\n") for member in kept_members],
         "added_tests": sorted(set(added_tests)),
         "added_helpers": sorted(set(added_helpers)),
+        "added_variables": sorted(set(added_variables)),
         "added_imports": added_imports,
         "skipped_duplicate_tests": sorted(set(skipped_duplicate_tests)),
         "skipped_duplicate_helpers": sorted(set(skipped_duplicate_helpers)),
@@ -332,6 +458,7 @@ def log_supplemental_merge_report(report: dict) -> None:
     log_message("📎 Supplemental merge summary:", category="info")
     emit("   Added test(s)", report.get("added_tests", []))
     emit("   Added helper function(s)", report.get("added_helpers", []))
+    emit("   Added variable/property member(s)", report.get("added_variables", []))
     emit("   Added import(s)", report.get("added_imports", []))
     emit("   Skipped duplicate test(s)", report.get("skipped_duplicate_tests", []))
     emit("   Skipped duplicate helper function(s)", report.get("skipped_duplicate_helpers", []))
@@ -364,11 +491,12 @@ def merge_test_code_with_member_blocks(
         raise ValueError("No supplemental class members provided for merge.")
 
     supplemental_members = "\n\n".join(member_blocks).strip("\n")
+    import_usage = extract_class_body_members(existing_test_code) + "\n" + supplemental_members
     existing_imports = set(extract_import_lines(existing_test_code))
     new_imports = [
         import_line
         for import_line in extract_import_lines(supplemental_test_code)
-        if import_line not in existing_imports and import_is_used_by_members(import_line, supplemental_members)
+        if import_line not in existing_imports and import_is_used_by_members(import_line, import_usage)
     ]
 
     merged = existing_test_code.rstrip()
@@ -395,6 +523,16 @@ def merge_test_code_with_member_blocks(
     return merged[:closing_index].rstrip() + insertion + merged[closing_index:]
 
 def merge_supplemental_test_code(existing_test_code: str, supplemental_test_code: str) -> str:
+    supplemental_members = extract_class_body_members(supplemental_test_code)
+    if not supplemental_members:
+        raise ValueError("Could not extract supplemental test class members for merge.")
+    initial_report = build_supplemental_merge_report(
+        existing_test_code,
+        supplemental_test_code,
+        supplemental_members,
+    )
+    required_names = set(initial_report.get("added_variables", [])) | set(initial_report.get("added_helpers", []))
+    existing_test_code = _merge_lifecycle_members(existing_test_code, supplemental_test_code, required_names)
     member_blocks = mergeable_supplemental_member_blocks(existing_test_code, supplemental_test_code)
     return merge_test_code_with_member_blocks(existing_test_code, supplemental_test_code, member_blocks)
 
@@ -409,4 +547,3 @@ def indent_class_members(member_text: str) -> str:
         "    " + line if line.strip() else ""
         for line in lines
     )
-

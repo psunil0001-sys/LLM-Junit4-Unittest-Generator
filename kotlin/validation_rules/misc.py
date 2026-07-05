@@ -73,6 +73,12 @@ def collect_carui_validation_issues(
                 + validation_repair_intent("invalid_carui_back_listener_fixture")
             )
 
+    if "MenuItem" in test_code and re.search(r"\b[A-Za-z_][A-Za-z0-9_]*\.onClick\??\.invoke\s*\(", test_code):
+        issues.append(
+            "invalid_carui_menu_callback_api: "
+            + validation_repair_intent("invalid_carui_menu_callback_api")
+        )
+
     if "NavDeepLinkRequest" in (source_code or "") and "TestNavHostController" in test_code and ".setGraph(" not in test_code:
         issues.append(
             "invalid_nav_deeplink_fixture: " + validation_repair_intent("invalid_nav_deeplink_fixture")

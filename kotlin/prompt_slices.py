@@ -309,7 +309,7 @@ def slice_test_file(
 
 def _entry_names_from_plan(opportunity_plan: dict | None, selected_entry_points: list[str] | None) -> set[str]:
     names: set[str] = set(selected_entry_points or [])
-    for bucket in ("selected_safe", "selected_attemptable", "alternatives", "blocked"):
+    for bucket in ("selected_safe", "selected_attemptable", "selected_blocked", "alternatives", "blocked"):
         for opportunity in opportunity_plan.get(bucket) or []:
             names.update(getattr(opportunity, "entry_points", None) or [])
             for part in getattr(opportunity, "coverage_path", None) or []:
@@ -325,7 +325,7 @@ def _entry_names_from_plan(opportunity_plan: dict | None, selected_entry_points:
 
 def _gap_lines_from_plan(opportunity_plan: dict | None) -> set[int]:
     lines: set[int] = set()
-    for bucket in ("selected_safe", "selected_attemptable"):
+    for bucket in ("selected_safe", "selected_attemptable", "selected_blocked"):
         for opportunity in opportunity_plan.get(bucket) or []:
             lines.update(getattr(opportunity, "lines", None) or [])
             lines.update(getattr(opportunity, "branches", None) or [])

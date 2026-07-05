@@ -35,7 +35,7 @@ class TestPipelineConfig(unittest.TestCase):
         with patch.dict(os.environ, {}, clear=True):
             config = load_config_from_env()
             self.assertTrue(config.enable_guardrails)
-            self.assertTrue(config.enable_memory_lessons)
+            self.assertFalse(config.enable_memory_lessons)
             self.assertEqual(config.incremental_line_budget, 80)
             self.assertEqual(config.incremental_safe_cap, 2)
 
@@ -68,6 +68,12 @@ class TestPipelineConfig(unittest.TestCase):
             config = load_config_from_env()
         self.assertEqual(config.incremental_line_budget, 1)
         self.assertEqual(config.incremental_safe_cap, 1)
+
+    def test_cli_coverage_buckets_override_defaults(self):
+        config = load_config_from_env()
+        args = argparse.Namespace(coverage_buckets=["attemptable", "blocked"])
+        updated = apply_cli_args(config, args)
+        self.assertEqual(("attemptable", "blocked"), updated.coverage_buckets)
 
     def test_cli_overrides_stuck_detector_and_slot_cache(self):
         config = load_config_from_env()

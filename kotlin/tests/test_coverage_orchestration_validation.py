@@ -6,11 +6,17 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import AsyncMock, patch
 
 from UnitTest_gen.kotlin.incremental_coverage import (
     CoverageOpportunity,
+    _apply_exact_patches,
+    _infer_callback_trigger_from_path,
+    _test_functions_named,
+    _validation_issue_fingerprint,
     coverage_candidate_acceptance_decision,
     coverage_candidate_intent_issues,
+    run_gradle_and_parse_gap,
 )
 from UnitTest_gen.kotlin.test_code_utils.validate import validate_generated_test_code
 from UnitTest_gen.kotlin.validation_rules.coverage_orchestration import (
@@ -51,6 +57,67 @@ class ClaimOwnershipFragment : Fragment() {
 
 
 class CoverageOrchestrationValidationTest(unittest.TestCase):
+    def test_validation_retry_fingerprint_uses_issue_category(self):
+        first = _validation_issue_fingerprint(["invalid_resource: first detail"])
+        second = _validation_issue_fingerprint(["invalid_resource: changed detail"])
+        different = _validation_issue_fingerprint(["invalid_hilt_setup: detail"])
+        self.assertEqual(first, second)
+        self.assertNotEqual(first, different)
+
+    def test_exact_patch_repair_applies_only_matching_patch(self):
+        code, count = _apply_exact_patches(
+            "findViewById(R.id.tvDeleteAll)",
+            [
+                {"old_text": "R.id.tvDeleteAll", "new_text": "R.id.tv_delete_all"},
+                {"old_text": "missing", "new_text": "ignored"},
+            ],
+        )
+        self.assertEqual("findViewById(R.id.tv_delete_all)", code)
+        self.assertEqual(1, count)
+
+    def test_menu_registration_on_parent_path_is_not_classified_as_view_click(self):
+        source = """
+class SampleFragment {
+    fun onViewCreated() { setupToolbar() }
+    private fun setupToolbar() {
+        toolbar.setMenuItems(listOf(MenuItem.Builder().setOnClickListener { showLogoutDialog() }.build()))
+    }
+    private fun showLogoutDialog() { showSignOutAlert() }
+    private fun showSignOutAlert() = Unit
+}
+"""
+        inferred = _infer_callback_trigger_from_path(
+            {"coverage_path": ["onViewCreated", "setupToolbar", "showLogoutDialog", "showSignOutAlert"]},
+            "private fun showSignOutAlert() = Unit",
+            source,
+        )
+        self.assertIsNotNone(inferred)
+        self.assertEqual("verified_menu_callback", inferred[1])
+        self.assertIn("performClick", inferred[3])
+    def test_selected_test_name_without_required_trigger_is_rejected(self):
+        opportunity = CoverageOpportunity(
+            name="logout click",
+            bucket="attemptable",
+            fixture="verified_ui_click",
+            entry_points=["onViewCreated"],
+            lines=[42],
+            branches=[],
+            reason="click branch",
+            action="click logout",
+            trigger_recipe="performClick on logout",
+        )
+        repaired = """
+class ExampleTest {
+    @Test fun selectedLogoutTest() { assertTrue(true) }
+    @Test fun unrelatedClickTest() { button.performClick() }
+}
+"""
+        selected_code = _test_functions_named(repaired, {"selectedLogoutTest"})
+        issues = coverage_candidate_intent_issues(
+            selected_code,
+            {"selected_safe": [], "selected_attemptable": [opportunity]},
+        )
+        self.assertTrue(any("missing_coverage_trigger_click" in issue for issue in issues))
     def test_network_click_requires_explicit_network_setup(self):
         opportunity = CoverageOpportunity(
             name="sign in click",
@@ -188,6 +255,42 @@ class IncrementalAcceptanceDecisionTest(unittest.TestCase):
         self.assertFalse(decision.accepted)
         self.assertEqual("no Kover improvement", decision.reason)
         self.assertEqual([157, 158], decision.resolved_unselected_lines)
+
+
+class GradleEvidenceReuseTest(unittest.IsolatedAsyncioTestCase):
+    async def test_reuses_fresh_repair_gradle_output(self):
+        output = (
+            "> Task :feature:testProdUnitTest\n"
+            "> Task :feature:koverXmlReportProd\n"
+            "BUILD SUCCESSFUL\nEXIT_CODE: 0"
+        )
+        gap = object()
+        with (
+            patch(
+                "UnitTest_gen.kotlin.incremental_coverage.run_gradle_with_heartbeat",
+                new=AsyncMock(),
+            ) as run_gradle,
+            patch(
+                "UnitTest_gen.kotlin.incremental_coverage.parse_latest_coverage_gap",
+                new=AsyncMock(return_value=gap),
+            ),
+        ):
+            passed, parsed_gap, returned_output = await run_gradle_and_parse_gap(
+                mcp_tools=None,
+                project_root="/project",
+                gradle_offline=False,
+                gradle_tasks=[":feature:koverXmlReportProd"],
+                module_dir="/project/feature",
+                source_file_path="/project/feature/Sample.kt",
+                source_code="class Sample",
+                log_title="acceptance",
+                verified_gradle_output=output,
+            )
+
+        run_gradle.assert_not_awaited()
+        self.assertTrue(passed)
+        self.assertIs(gap, parsed_gap)
+        self.assertEqual(output, returned_output)
 
 
 if __name__ == "__main__":

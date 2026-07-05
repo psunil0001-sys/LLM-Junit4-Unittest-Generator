@@ -15,11 +15,15 @@ from UnitTest_gen.kotlin.guardrail_catalog import (
     VALIDATION_REPAIR_INTENTS,
     render_guardrails,
 )
+from UnitTest_gen.kotlin.prompting.rules import build_generation_rule_tail
 from UnitTest_gen.kotlin.strategy_contracts import (
     COVERAGE_BLOCKED_PATH_CONTRACT,
     validation_repair_intent,
 )
-from UnitTest_gen.kotlin.validation_rules.misc import collect_robolectric_sdk_validation_issues
+from UnitTest_gen.kotlin.validation_rules.misc import (
+    collect_carui_validation_issues,
+    collect_robolectric_sdk_validation_issues,
+)
 
 
 class TestGuardrailCatalog(unittest.TestCase):
@@ -29,6 +33,31 @@ class TestGuardrailCatalog(unittest.TestCase):
             catalog_codes.update(rule.validator_codes)
         for code in sorted(catalog_codes):
             self.assertIn(code, VALIDATION_REPAIR_INTENTS, msg=code)
+
+    def test_recent_validator_and_orchestration_codes_have_specific_repairs(self):
+        for code in (
+            "invalid_fragment_lifecycle_reentry",
+            "invalid_fragment_arguments_after_attach",
+            "invalid_project_interface_call",
+            "invalid_suspend_call_context",
+            "missing_coverage_trigger_network",
+        ):
+            self.assertIn(code, VALIDATION_REPAIR_INTENTS, msg=code)
+
+    def test_generation_tail_includes_canonical_guardrails(self):
+        text = build_generation_rule_tail(
+            is_fragment=True,
+            is_hilt=True,
+            is_viewmodel=False,
+            uses_framework_blueprints=True,
+            is_apollo_mapper=False,
+            source_code="@AndroidEntryPoint class SampleFragment : Fragment()",
+            source_categories={"android_fragment", "hilt"},
+        )
+        self.assertIn("MANDATORY GENERATED-TEST GUARDRAILS", text)
+        self.assertIn("commitNow()/FragmentManager attachment already invokes Fragment lifecycle", text)
+        self.assertNotIn("AppAuth refreshToken", text)
+        self.assertLess(len(text), 12_000)
 
     def test_strategy_contract_uses_same_repair_intent(self):
         self.assertEqual(
@@ -82,6 +111,15 @@ class TestGuardrailCatalog(unittest.TestCase):
             SimpleNamespace(tests=SimpleNamespace(config_sdks=())),
         )
         self.assertFalse(any("deprecated_robolectric_api" in issue for issue in issues))
+
+    def test_carui_menu_item_onclick_property_is_rejected(self):
+        issues = collect_carui_validation_issues(
+            "val item: MenuItem = mock(); item.onClick?.invoke()",
+            "SampleTest.kt",
+            "toolbar.setMenuItems(listOf(MenuItem.Builder(context).build()))",
+            SimpleNamespace(),
+        )
+        self.assertTrue(any("invalid_carui_menu_callback_api" in issue for issue in issues))
 
 
 if __name__ == "__main__":

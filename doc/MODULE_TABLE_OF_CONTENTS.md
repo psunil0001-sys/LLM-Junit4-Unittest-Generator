@@ -13,7 +13,7 @@ This document is a developer map for understanding and debugging the unit-test g
 | `core/model_runtime.py` | OpenAI-compatible chat streaming, embedding access, prompt printing, stuck detection, and runtime cache state. |
 | `core/prompt_assembly.py` | Generic prompt-rule parsing, retrieval, section assembly, templates, and prompt message bundles. |
 | `core/rag_context.py` | Deterministic tag/term/priority ranking and formatting for retrieved context blocks. |
-| `core/pipeline_config.py` | Central runtime flow-control settings loaded from env and CLI (`PipelineConfig`, `get_config`). |
+| `core/pipeline_config.py` | Single runtime source for env/CLI settings (`PipelineConfig`, `get_config`), including enabled coverage buckets. |
 | `core/semgrep_runner.py` | Reusable offline Semgrep-core runner for local static-policy rule sets. |
 | `core/server_manager.py` | Optional local server startup/shutdown with thinking-aware command construction and slot-path preflight. |
 | `core/vector_cache.py` | Source-scoped vector-cache naming, loading, saving, atomic writes, and deletion. |
@@ -21,7 +21,7 @@ This document is a developer map for understanding and debugging the unit-test g
 | `kotlin/coverage_analysis.py` | Kover XML discovery, missed-line/branch parsing, gap context, and delta comparison. |
 | `kotlin/generator.py` | Top-level Kotlin/Android generation orchestration, CLI parsing, source loop, and cleanup. |
 | `kotlin/gradle_analysis/` | Gradle/Kotlin/JUnit error grouping, causal repair planning, and fingerprints (`errors.py`, `junit.py`). |
-| `kotlin/incremental_coverage.py` | Existing-test incremental Kover generation, merge, rollback, and coverage-proof flow. |
+| `kotlin/incremental_coverage.py` | Shared dashboard/generation bucket planner, CLI-prioritized incremental selection, merge, rollback, and Kover-proof flow. |
 | `kotlin/kotlin_analysis.py` | Kotlin AST parsing, imports, source classification, signatures, and source-risk analysis. |
 | `kotlin/mcp_gradle_server.py` | MCP server exposing project-safe file, Gradle, search, and Kotlin declaration tools. |
 | `kotlin/mcp_tool_adapter.py` | Kotlin adapter over generic MCP tools for Gradle heartbeat and Kotlin declaration lookup. |
@@ -29,13 +29,13 @@ This document is a developer map for understanding and debugging the unit-test g
 | `kotlin/project_context.py` | Android module discovery, Gradle dependencies, Hilt support, vector indexing, and nearby context. |
 | `kotlin/prompting/` | Kotlin prompt-rule selection, generation/repair streaming, and model-call entrypoints (`generation.py`, `repair.py`, `rules.py`). |
 | `kotlin/prompts.py` | Authoritative Kotlin/Android system prompts, user-section labels, rules, and blueprint text. |
-| `kotlin/repair_flow.py` | Owned Gradle/JUnit failure filtering, bounded repair orchestration, and final memory save. |
+| `kotlin/repair_flow.py` | Owned Gradle/JUnit failure filtering, bounded patch/full-file repair, and reusable successful Gradle evidence. |
 | `kotlin/static_analysis.py` | Strict Pydantic report combining Kotlin Tree-sitter structure, Semgrep findings, and project verification. |
 | `kotlin/test_code_utils/` | Kotlin test extraction (`extract.py`), validation (`validate.py`), and merge (`merge.py`) helpers. |
 | `kotlin/tests/` | Compact production-flow smoke tests plus focused config/guardrail/incremental-selection checks. |
 | `helper/dashboard/blocked_coverage_kover_report.py` | Path-based Kover XML discovery, gap dashboards, coverage-summary orchestration, and HTML report output. |
 | `helper/dashboard/kover_coverage_summary.py` | Interactive Kover coverage-summary HTML from discovered module XML reports. |
-| `helper/dashboard/kover_gap_dashboard.py` | Renders Kover gap dashboard HTML. |
+| `helper/dashboard/kover_gap_dashboard.py` | Renders Kover gap dashboard HTML with multi-select filters and evidence provenance. |
 | `helper/chatbot/codebase_chatbot.py` | RAG REPL over UnitTest_gen docs and Python source with optional auto-started chat server. |
 
 ## Core Module Functions and Important Globals
@@ -195,8 +195,9 @@ This document is a developer map for understanding and debugging the unit-test g
 | `filter_source_risk_context_for_gap` | function | Keeps source-risk hints relevant to the current Kover gap. |
 | `build_coverage_opportunity_plan` | function | Classifies Kover gaps into safe, attemptable, blocked, and excluded opportunities. |
 | `_select_largest_fixture_opportunities` | function | Picks the highest-weight fixture group and opportunities under cap/line budget. |
+| `_selected_opportunities` | function | Returns the active safe, attemptable, or explicitly selected blocked phase for prompting and acceptance. |
 | `build_incremental_coverage_strategy` | function | Builds deterministic coverage targeting instructions. |
-| `run_gradle_and_parse_gap` | async function | Runs Gradle/Kover and parses the latest gap. |
+| `run_gradle_and_parse_gap` | async function | Reuses fresh repair Gradle/Kover evidence when available; otherwise runs Gradle and forces one stale-task rerun when needed. |
 | `run_incremental_coverage_generation` | async function | Generates, merges, repairs, verifies, and rolls back incremental coverage candidates. |
 
 ### `kotlin/kotlin_analysis.py`
@@ -325,7 +326,7 @@ This document is a developer map for understanding and debugging the unit-test g
 | `prepare_html_report_dir` | function | Clears and recreates the HTML output directory before writing reports. |
 | `write_all_kover_html_reports` | function | Builds coverage summaries, gap dashboards, and the reports hub in one CLI-oriented pass. |
 | `write_kover_gap_reports` | function | Rebuilds Kover gap dashboards for all discovered variant groups. |
-| `build_kover_gap_report` | function | Builds the dashboard data model from Kover XML gaps and planner classifications. |
+| `build_kover_gap_report` | function | Builds dashboard rows from the same planner used by generation, preserving action, evidence, provenance, and all XML-backed modules. |
 
 ### `helper/dashboard/kover_coverage_summary.py`
 
@@ -340,7 +341,7 @@ This document is a developer map for understanding and debugging the unit-test g
 
 | Name | Type | One-line summary |
 |---|---|---|
-| `render_kover_gap_dashboard` | function | Renders one interactive Kover gap dashboard. |
+| `render_kover_gap_dashboard` | function | Renders one interactive Kover gap dashboard with multi-select module, bucket, and reason filters. |
 | `render_kover_gap_index` | function | Renders the dashboard index page. |
 
 ### `helper/chatbot/codebase_chatbot.py`
@@ -356,7 +357,7 @@ This document is a developer map for understanding and debugging the unit-test g
 
 | Module | One-line responsibility |
 |---|---|
-| `kotlin/tests/test_incremental_opportunity_selection.py` | Largest-first safe/attemptable fixture selection smoke tests. |
+| `kotlin/tests/test_incremental_opportunity_selection.py` | Safe/attemptable/explicit-blocked priority, callback classification, fixture selection, and CLI-context smoke tests. |
 | `kotlin/tests/test_pipeline_config.py` | Incremental cap/budget and pipeline config env/CLI checks. |
 | `helper/dashboard/test_kover_xml_discovery.py` | Path-based Kover XML grouping and HTML output-dir cleanup tests. |
 | `helper/dashboard/test_kover_coverage_summary.py` | Kover coverage-summary parsing smoke tests. |

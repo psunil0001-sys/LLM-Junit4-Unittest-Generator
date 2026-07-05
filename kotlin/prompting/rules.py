@@ -18,6 +18,7 @@ from UnitTest_gen.core.prompt_assembly import (
 )
 from UnitTest_gen.core.rag_context import RetrievalQuery
 from UnitTest_gen.kotlin import prompts as prompt_constants
+from UnitTest_gen.kotlin.guardrail_catalog import render_guardrails
 from UnitTest_gen.kotlin.kotlin_analysis import (
     classify_fragment_source,
     classify_repair,
@@ -156,7 +157,11 @@ def _fixture_ids_from_classification(source_categories: set[str], source_code: s
 def _fixture_ids_from_opportunity_plan(opportunity_plan) -> list[str]:
     if not opportunity_plan:
         return []
-    selected = list(opportunity_plan.get("selected_safe", [])) + list(opportunity_plan.get("selected_attemptable", []))
+    selected = (
+        list(opportunity_plan.get("selected_safe", []))
+        + list(opportunity_plan.get("selected_attemptable", []))
+        + list(opportunity_plan.get("selected_blocked", []))
+    )
     return list(dict.fromkeys(getattr(opportunity, "fixture", "") for opportunity in selected if getattr(opportunity, "fixture", "")))
 
 
@@ -765,6 +770,18 @@ def build_generation_rule_tail(
     sections = [
         "### FINAL GENERATION RULES - APPLY AFTER READING ALL CONTEXT",
     ]
+    guardrail_targets = ["core"]
+    if "android_fragment" in categories:
+        guardrail_targets.append("blueprint_fragment")
+    if "android_navigation" in categories or "nav_deeplink" in categories:
+        guardrail_targets.append("blueprint_navigation")
+    if "viewmodel" in categories:
+        guardrail_targets.append("blueprint_viewmodel")
+    if "apollo" in categories:
+        guardrail_targets.append("blueprint_apollo")
+    guardrail_text = render_guardrails(*guardrail_targets)
+    if guardrail_text:
+        sections.append("### MANDATORY GENERATED-TEST GUARDRAILS\n" + guardrail_text)
     if mandatory_contract_rules:
         sections.append("### MANDATORY STRATEGY CONTRACTS\n" + mandatory_contract_rules)
     if playbook_text:

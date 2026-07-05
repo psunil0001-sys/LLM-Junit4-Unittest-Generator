@@ -795,7 +795,7 @@ def repair_focused_error_patch_streaming(
 
     raw_output = stream_chat_completion(
         messages=list(prompt_bundle.messages),
-        temperature=0.06 if is_batch_compile_repair else 0.09,
+        temperature=0.03 if is_batch_compile_repair else 0.05,
         extra_body={
             "thinking_budget_tokens": 4096,
             "presence_penalty": 0.1,

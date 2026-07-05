@@ -1006,6 +1006,15 @@ async def async_main():
             "Defaults to 3. Use 1 for the previous single-pass behavior."
         ),
     )
+    parser.add_argument(
+        "--coverage-buckets",
+        type=lambda value: [item.strip().lower() for item in value.split(",") if item.strip()],
+        default=None,
+        help=(
+            "Comma-separated incremental buckets to generate: safe,attemptable,blocked. "
+            "Priority remains safe, then attemptable, then blocked. Default: safe,attemptable."
+        ),
+    )
 
     parser.add_argument(
         "--disable-slot-bin-cache",
@@ -1033,6 +1042,13 @@ async def async_main():
 
     if args.incremental_coverage_rounds < 1:
         parser.error("--incremental-coverage-rounds must be 1 or greater.")
+    if args.coverage_buckets:
+        invalid_buckets = set(args.coverage_buckets) - {"safe", "attemptable", "blocked"}
+        if invalid_buckets:
+            parser.error(
+                "--coverage-buckets accepts only safe,attemptable,blocked; invalid: "
+                + ",".join(sorted(invalid_buckets))
+            )
     if args.enable_stuck_detector:
         set_model_stuck_detector_enabled(True)
     if args.enable_slot_bin_cache and args.disable_slot_bin_cache:

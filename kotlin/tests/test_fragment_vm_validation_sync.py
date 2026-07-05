@@ -142,6 +142,16 @@ class LoginFragmentTest {
         self.assertIsNotNone(result)
         self.assertEqual(result[1], "verified_menu_callback")
 
+    def test_infer_back_listener_before_nearby_menu_setup(self):
+        result = _infer_callback_trigger_from_path(
+            {"coverage_path": ["onViewCreated", "setupToolbar", "registerBackListener", "callback"]},
+            "toolbar.setMenuItems(null)\ntoolbar.registerBackListener { navigateHome(); true }",
+            "",
+        )
+        self.assertIsNotNone(result)
+        self.assertEqual("verified_callback", result[1])
+        self.assertIn("registerBackListener", result[3])
+
     def test_validate_with_opportunity_plan_includes_intent_issues(self):
         test_code = "package com.example\nclass T { @Test fun x() { verify(toolbar) } }"
         issues = validate_generated_test_code(

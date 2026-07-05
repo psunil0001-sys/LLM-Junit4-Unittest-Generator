@@ -32,15 +32,10 @@ AST_PARSER = Parser(Language(tskotlin.language()))
 
 
 def _append_validation_rule_issues(issues, test_code, output_file_path, source_code, test_report) -> None:
-    try:
-        from UnitTest_gen.kotlin.validation_rules import VALIDATION_RULES
-    except ImportError:
-        return
+    from UnitTest_gen.kotlin.validation_rules import VALIDATION_RULES
+
     for collect_rule_issues in VALIDATION_RULES:
-        try:
-            collected = collect_rule_issues(test_code, output_file_path, source_code, test_report)
-        except TypeError:
-            collected = collect_rule_issues(test_code, output_file_path, source_code)
+        collected = collect_rule_issues(test_code, output_file_path, source_code, test_report)
         issues.extend(collected or [])
 
 
@@ -50,6 +45,18 @@ def normalize_kotlin_test_code(test_code: str, source_code: str = "", output_fil
     intentionally narrow and compile-safety focused.
     """
     normalized = test_code
+    normalized = normalized.replace(
+        "import androidx.test.core.app.InstantTaskExecutorRule",
+        "import androidx.arch.core.executor.testing.InstantTaskExecutorRule",
+    ).replace(
+        "import androidx.lifecycle.testing.InstantTaskExecutorRule",
+        "import androidx.arch.core.executor.testing.InstantTaskExecutorRule",
+    )
+    normalized = re.sub(
+        r"shadowOf\s*\(\s*Robolectric\.getForegroundThreadScheduler\s*\(\s*\)\s*\)\.idle\s*\(\s*\)",
+        "ShadowLooper.runUiThreadTasksIncludingDelayedTasks()",
+        normalized,
+    )
 
     top_lines = [line.strip() for line in normalized.splitlines()[:5]]
     if not any(line.startswith("package ") for line in top_lines):
@@ -120,12 +127,33 @@ def normalize_kotlin_test_code(test_code: str, source_code: str = "", output_fil
         canonical_imports.append("import com.android.car.ui.toolbar.ToolbarController")
     if "ProgressBarController" in normalized:
         canonical_imports.append("import com.android.car.ui.toolbar.ProgressBarController")
+    if "ShadowLooper." in normalized:
+        canonical_imports.append("import org.robolectric.shadows.ShadowLooper")
     if "MockedStatic<" in normalized:
         canonical_imports.append("import org.mockito.MockedStatic")
     if "HiltTestActivity" in normalized and module_root_package:
         canonical_imports.append(f"import {module_root_package}.HiltTestActivity")
     if canonical_imports:
         add_missing_imports(canonical_imports)
+
+    if (
+        source_declares_viewmodel_class(source_code or "")
+        and "LiveData" in (source_code or "")
+        and "InstantTaskExecutorRule" not in normalized
+    ):
+        add_missing_imports(
+            [
+                "import androidx.arch.core.executor.testing.InstantTaskExecutorRule",
+                "import org.junit.Rule",
+            ]
+        )
+        class_match = re.search(r"\bclass\s+[A-Za-z_][A-Za-z0-9_]*[^\{]*\{", normalized)
+        if class_match:
+            normalized = (
+                normalized[: class_match.end()]
+                + "\n\n    @get:Rule\n    val instantTaskExecutorRule = InstantTaskExecutorRule()"
+                + normalized[class_match.end() :]
+            )
 
     if re.search(r"\bwhenever\s*\(", normalized):
         normalized = normalized.replace("import org.mockito.Mockito.*\n", "")

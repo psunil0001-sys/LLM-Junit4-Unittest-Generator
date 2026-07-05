@@ -20,7 +20,10 @@ from UnitTest_gen.kotlin.memory_context import retrieve_repair_lessons
 from UnitTest_gen.kotlin.mcp_tool_adapter import run_gradle_with_heartbeat
 from UnitTest_gen.kotlin.project_context import derive_coverage_supplement_path, derive_indirect_coverage_test_path, find_owning_module_dir
 from UnitTest_gen.kotlin.prompting.generation import generate_coverage_supplement_test_streaming
-from UnitTest_gen.kotlin.prompting.repair import repair_focused_error_block_streaming
+from UnitTest_gen.kotlin.prompting.repair import (
+    repair_focused_error_block_streaming,
+    repair_focused_error_patch_streaming,
+)
 from UnitTest_gen.kotlin.repair_flow import verify_and_repair_test_with_mcp
 from UnitTest_gen.kotlin.test_code_utils.merge import force_generated_test_class_name, merge_supplemental_test_code
 from UnitTest_gen.kotlin.test_code_utils.validate import normalize_kotlin_test_code, remember_successful_generation_if_high_quality, validate_generated_test_code, validation_issues_added
@@ -66,6 +69,21 @@ _RETRYABLE_ACCEPTANCE_REASONS = frozenset(
     }
 )
 
+
+def _validation_issue_fingerprint(issues: list[str]) -> tuple[str, ...]:
+    return tuple(sorted({issue.split(":", 1)[0].strip() for issue in issues}))
+
+
+def _apply_exact_patches(code: str, patches: list[dict]) -> tuple[str, int]:
+    applied = 0
+    for patch in patches or []:
+        old_text = patch.get("old_text", "")
+        if not old_text or old_text not in code:
+            continue
+        code = code.replace(old_text, patch.get("new_text", ""), 1)
+        applied += 1
+    return code, applied
+
 BLOCKED_NEEDS_DISPATCHER_SEAM = "needs_dispatcher_seam"
 BLOCKED_NEEDS_STATIC_WRAPPER = "needs_static_wrapper"
 BLOCKED_NEEDS_VERIFIED_EXCEPTION_FIXTURE = "needs_verified_exception_fixture"
@@ -100,7 +118,11 @@ def relevant_gradle_tasks_executed(gradle_output: str) -> bool:
 
 def _selected_opportunities(opportunity_plan) -> list:
     plan = opportunity_plan or {}
-    return list(plan.get("selected_safe", [])) + list(plan.get("selected_attemptable", []))
+    return (
+        list(plan.get("selected_safe", []))
+        + list(plan.get("selected_attemptable", []))
+        + list(plan.get("selected_blocked", []))
+    )
 
 
 def opportunity_fingerprint(opportunity: CoverageOpportunity) -> str:
@@ -448,19 +470,6 @@ def _upstream_context_lines(source_code: str, target_lines: list[int], max_lookb
     return collected
 
 
-def _classification_context_lower(source_code: str, target_lines: list[int] | None, snippet: str) -> str:
-    target_line_set = set(target_lines or [])
-    source_lines = source_code.splitlines()
-    target_text = "\n".join(
-        source_lines[line_no - 1]
-        for line_no in sorted(target_line_set)
-        if 0 < line_no <= len(source_lines)
-    )
-    upstream = "\n".join(_upstream_context_lines(source_code, list(target_line_set)))
-    parts = [snippet or "", target_text, upstream]
-    return "\n".join(part for part in parts if part).lower()
-
-
 def _branch_probe_bullets_for_lines(source_lines: list[str], line_numbers: list[int]) -> list[str]:
     bullets = []
     for line_no in line_numbers:
@@ -518,14 +527,30 @@ def _complementary_when_branch_recipe(source_lines: list[str], function: dict, b
 
 def _infer_callback_trigger_from_path(function: dict, source_snippet: str, source_code: str) -> tuple[str, str, str, str, str, str] | None:
     coverage_path = " ".join(function.get("coverage_path") or [])
-    trigger_context = f"{coverage_path}\n{source_snippet}"
+    path_names = set(function.get("coverage_path") or [])
+    source_lines = (source_code or "").splitlines()
+    path_declarations = "\n".join(
+        _snippet_for_range(source_lines, item["start"], item["end"])
+        for item in _function_ranges_from_analysis(source_code or "")
+        if item["name"] in path_names
+    )
+    trigger_context = f"{coverage_path}\n{source_snippet}\n{path_declarations}"
     lower = trigger_context.lower()
     path_lower = coverage_path.lower()
     if "callback" not in path_lower and not any(
-        token in (source_snippet or "").lower()
+        token in lower
         for token in ("setonclicklistener", "setmenuitems", "observe", "collect", "registerbacklistener")
     ):
         return None
+    if "registerbacklistener" in lower:
+        return (
+            "attemptable",
+            "verified_callback",
+            "Public path registers a CarUi back callback.",
+            "Capture the verified callback passed to registerBackListener, invoke it, and assert navigation/state.",
+            "Concrete trigger: capture the registered callback and invoke it after Fragment attach.",
+            "",
+        )
     if "setmenuitems" in lower or (
         "menuitem" in lower and any(token in lower for token in ("toolbar", "setmenuitems", "menuitems"))
     ):
@@ -533,8 +558,8 @@ def _infer_callback_trigger_from_path(function: dict, source_snippet: str, sourc
             "safe",
             "verified_menu_callback",
             "Public path registers a CarUi toolbar menu item listener.",
-            "Capture the menu listener from setMenuItems and invoke it once after Fragment attach.",
-            "Concrete trigger: capture menu callback followed by invoke/onClick.",
+            "After Fragment attach, capture List<MenuItem> passed to setMenuItems and call performClick() on the target item.",
+            "Concrete trigger: capture the registered MenuItem and call performClick().",
             "",
         )
     if "registerforactivityresult" in lower:
@@ -731,14 +756,14 @@ def coverage_candidate_intent_issues(test_code: str, opportunity_plan) -> list[s
         "verified_observer_and_click": "missing_coverage_trigger_observer_before_click",
         "verified_stream_emission": "missing_coverage_trigger_coroutine",
         "verified_coroutine_completion": "missing_coverage_trigger_coroutine",
-        "verified_callback": "missing_coverage_trigger_click",
+        "verified_callback": "missing_coverage_trigger_callback",
     }
     for opportunity in selected:
         fixture = str(getattr(opportunity, "fixture", "") or "")
         code = fixture_codes.get(fixture, "")
         if not code:
             if fixture.startswith(("verified_", "controlled_")) and len(text) < 24:
-                code = f"missing_trigger:{fixture}"
+                code = "missing_coverage_trigger_callback"
             if not code:
                 continue
         elif fixture == "verified_menu_callback":
@@ -932,9 +957,9 @@ def _classify_gap_function(
         return (
             "attemptable",
             "controlled_countdown_callback",
-            "The missed lines execute from a countdown callback rather than the synchronous public call.",
+            "Static analysis places the missed lines inside the countdown completion callback reached from the public method.",
             "Invoke the public method, advance the verified clock or captured countdown callback, then assert final state.",
-            "Requires deterministic countdown completion.",
+            "The selected Kover lines are inside the startCountdown callback body, so invoking only the public method cannot execute them.",
             "",
         )
     if (
@@ -1034,17 +1059,17 @@ def _classify_gap_function(
         return (
             "safe",
             "viewmodel_public_method",
-            "Public ViewModel method with uncovered lines and no hard blocker detected.",
+            "Static analysis maps the selected lines to a public ViewModel entry before any detected callback, hard-coded dispatcher, or static boundary.",
             "Use direct-constructor fixture and assert stable state, events, or collaborator behavior.",
-            "Public method has no detected hard-coded dispatcher/static blocker around selected lines.",
+            "Static analysis maps the selected lines to this public ViewModel entry before any detected callback, hard-coded dispatcher, or static boundary.",
             "",
         )
     return (
         "safe",
         "public_method",
-        "Public method with uncovered lines and no hard blocker detected.",
+        "Static analysis maps the selected lines to a synchronous public-entry path without a detected callback, dispatcher, or static boundary.",
         "Generate public-contract tests with stable inputs and precise assertions.",
-        "Public method has no detected hard blocker around selected lines.",
+        "Static analysis maps the selected lines to a synchronous public-entry path without a detected callback, dispatcher, or static boundary.",
         "",
     )
 
@@ -1061,7 +1086,7 @@ def _opportunity_fingerprint(opportunity: CoverageOpportunity) -> str:
 
 
 def _selected_opportunity_fingerprints(opportunity_plan) -> set[str]:
-    selected = list(opportunity_plan.get("selected_safe", [])) + list(opportunity_plan.get("selected_attemptable", []))
+    selected = _selected_opportunities(opportunity_plan)
     return {_opportunity_fingerprint(opportunity) for opportunity in selected}
 
 
@@ -1077,6 +1102,24 @@ def _test_mentions_entry_point(existing_test_code: str, name: str) -> bool:
     return any(re.search(pattern, existing_test_code, flags=re.IGNORECASE) for pattern in patterns)
 
 
+def _test_function_names(test_code: str) -> set[str]:
+    if not (test_code or "").strip():
+        return set()
+    return {function.name for function in analyze_kotlin_code(test_code).tests.test_functions}
+
+
+def _test_functions_named(test_code: str, names: set[str]) -> str:
+    if not names or not (test_code or "").strip():
+        return ""
+    report = analyze_kotlin_code(test_code)
+    lines = test_code.splitlines()
+    return "\n\n".join(
+        "\n".join(lines[function.span.start_line - 1 : function.span.end_line])
+        for function in report.tests.test_functions
+        if function.name in names
+    )
+
+
 def build_coverage_opportunity_plan(
     source_code: str,
     gap,
@@ -1090,7 +1133,7 @@ def build_coverage_opportunity_plan(
 ):
     retry_feedback = (retry_feedback or "").strip()
     if not gap:
-        return {"selected_safe": [], "selected_attemptable": [], "alternatives": [], "blocked": []}
+        return {"selected_safe": [], "selected_attemptable": [], "selected_blocked": [], "alternatives": [], "blocked": []}
 
     categories = {str(category).lower() for category in (source_categories or [])}
     if "BaseFirebaseEvents" in (source_code or ""):
@@ -1227,9 +1270,12 @@ def build_coverage_opportunity_plan(
                 )
             else:
                 snippet = "\n".join(
-                    source_lines[line_no - 1]
-                    for line_no in target_lines_for_context
-                    if 0 < line_no <= len(source_lines)
+                    _upstream_context_lines(source_code, target_lines_for_context)
+                    + [
+                        source_lines[line_no - 1]
+                        for line_no in target_lines_for_context
+                        if 0 < line_no <= len(source_lines)
+                    ]
                 )
             bucket_name, fixture, reason, action, execution_proof, blocked_reason = _classify_gap_function(
                 opportunity_name,
@@ -1275,9 +1321,9 @@ def build_coverage_opportunity_plan(
             elif "startCountdown" in function_snippet and target_lines_for_context:
                 bucket_name = "attemptable"
                 fixture = "controlled_countdown_callback"
-                reason = "The missed lines execute from a countdown callback rather than the synchronous public call."
+                reason = "Static analysis places the missed lines inside the countdown completion callback reached from the public method."
                 action = "Invoke the public method, advance the verified clock or captured countdown callback, then assert final state."
-                execution_proof = "Requires deterministic countdown completion."
+                execution_proof = "The selected Kover lines are inside the startCountdown callback body, so invoking only the public method cannot execute them."
                 blocked_reason = ""
             elif region == "callback" and re.search(
                 r"\bval\s+\w+\s*=\s*[A-Z][A-Za-z0-9_]*(?:Manager|Client|Service)\s*\(",
@@ -1368,7 +1414,7 @@ def build_coverage_opportunity_plan(
                 execution_proof = "Concrete trigger: controlled coroutine scheduler completion."
             trigger_kind = bucket.get("trigger") or ""
             trigger_requirement = ""
-            trigger_recipe = "direct public execution"
+            trigger_recipe = action or "direct public execution"
             if region == "exception" and bucket_name != "blocked" and function.get("visibility") == "private":
                 bucket_name = "blocked"
                 fixture = "untriggerable_exception_path"
@@ -1407,13 +1453,19 @@ def build_coverage_opportunity_plan(
             elif trigger_kind and bucket_name != "blocked":
                 trigger_requirement = trigger_kind
                 if trigger_kind == "setOnClickListener":
+                    inferred = _infer_callback_trigger_from_path(
+                        {"coverage_path": coverage_path + [trigger_kind]}, snippet, source_code
+                    )
                     call_context = _targeted_snippet_for_lines(
                         source_lines,
                         call_lines,
                         {"start": 1, "end": len(source_lines)},
                         context=12,
                     )
-                    if "isInternetAvailable" in call_context:
+                    if inferred and inferred[1] == "verified_menu_callback":
+                        bucket_name, fixture, reason, action, execution_proof, blocked_reason = inferred
+                        trigger_recipe = action
+                    elif "isInternetAvailable" in call_context:
                         bucket_name, fixture = "attemptable", "verified_ui_click"
                         reason = "Private helper requires a click plus controlled Android network/browser state."
                         action = trigger_recipe = "Configure verified Robolectric network/browser state, then performClick() on the registered view."
@@ -1424,11 +1476,24 @@ def build_coverage_opportunity_plan(
                 elif trigger_kind == "setMenuItems":
                     bucket_name, fixture = "safe", "verified_menu_callback"
                     reason = "Private helper is reached through a verified CarUi toolbar menu listener."
-                    action = trigger_recipe = "Capture the menu listener from setMenuItems and invoke it once after Fragment attach."
+                    action = trigger_recipe = "After Fragment attach, capture List<MenuItem> passed to setMenuItems and call performClick() on the target item."
                 elif trigger_kind in {"observe", "observeForever"}:
-                    bucket_name, fixture = "attemptable", "verified_observer_emission"
-                    reason = "Private helper is reached after a verified observable emission."
-                    action = trigger_recipe = "Attach the Fragment and post/set the required value on the same observable instance."
+                    if (
+                        "delegated_viewmodel_fragment" in categories
+                        and "verified_observer_emission" not in categories
+                    ):
+                        bucket_name, fixture = "blocked", "delegated_viewmodel_observer"
+                        reason = "The observer uses a delegated Fragment ViewModel instance that the test cannot replace or emit through."
+                        action = "Expose the ViewModel/state owner through an injectable factory or test-visible owner before targeting this observer path."
+                        execution_proof = ""
+                        blocked_reason = _blocked_reason(
+                            BLOCKED_NEEDS_CALLBACK_SEAM,
+                            "No verified test path reaches the same delegated ViewModel observable instance.",
+                        )
+                    else:
+                        bucket_name, fixture = "attemptable", "verified_observer_emission"
+                        reason = "Private helper is reached after a verified observable emission."
+                        action = trigger_recipe = "Attach the Fragment and post/set the required value on the same observable instance."
                 elif trigger_kind in {"onEach", "collect", "collectLatest"}:
                     bucket_name, fixture = "attemptable", "verified_stream_emission"
                     reason = "Private helper is reached after a verified finite stream emission."
@@ -1445,8 +1510,15 @@ def build_coverage_opportunity_plan(
                         bucket_name, fixture, reason, action, execution_proof, blocked_reason = inferred
                         trigger_recipe = action
                     else:
-                        bucket_name, fixture = "attemptable", "verified_callback"
-                        action = trigger_recipe = f"Trigger the registered {trigger_kind} callback through the public fixture."
+                        bucket_name, fixture = "blocked", "unverified_callback"
+                        reason = "Static analysis found a callback path but no verified public trigger for that callback type."
+                        action = "Expose or capture the callback through a testable registration seam before targeting its body."
+                        execution_proof = ""
+                        blocked_reason = _blocked_reason(
+                            BLOCKED_NEEDS_CALLBACK_SEAM,
+                            f"No deterministic trigger is known for the registered {trigger_kind} callback.",
+                        )
+                        trigger_recipe = ""
             elif region == "callback" and bucket_name != "blocked":
                 callback_trigger = _infer_callback_trigger_from_path(
                     {"coverage_path": [name, "callback"]}, snippet, source_code
@@ -1466,6 +1538,16 @@ def build_coverage_opportunity_plan(
                             "then advance past the delay and assert no navigation."
                         )
                         reason = "The remaining isAdded branch requires delayed execution after Fragment detachment."
+                else:
+                    bucket_name, fixture = "blocked", "unverified_callback"
+                    reason = "The selected lines are inside a callback body with no verified public trigger."
+                    action = "Expose or capture the callback through a testable registration seam before targeting its body."
+                    execution_proof = ""
+                    blocked_reason = _blocked_reason(
+                        BLOCKED_NEEDS_CALLBACK_SEAM,
+                        "Static analysis found the callback body but could not prove how a test can invoke it.",
+                    )
+                    trigger_recipe = ""
             elif opportunity_branches and not opportunity_lines and bucket_name == "safe":
                 fixture = "branch_probe"
                 complementary_recipe = _complementary_when_branch_recipe(source_lines, function, opportunity_branches, gap)
@@ -1486,6 +1568,74 @@ def build_coverage_opportunity_plan(
                     "and assert the project-owned storage interaction."
                 )
                 execution_proof = "Requires valid AppAuth request/configuration and token response data."
+            delegated_observer_target = (
+                "delegated_viewmodel_fragment" in categories
+                and "verified_observer_emission" not in categories
+                and any(
+                    callback.kind in {"observe", "observeForever", "onEach", "collect", "collectLatest"}
+                    and any(
+                        callback.span.start_line <= line_no <= callback.span.end_line
+                        for line_no in target_lines_for_context
+                    )
+                    for callback in analysis_report.callbacks
+                )
+            )
+            if delegated_observer_target:
+                bucket_name = "blocked"
+                fixture = "delegated_viewmodel_observer"
+                reason = "The selected callback runs from a delegated Fragment ViewModel stream that the test cannot control."
+                action = "Expose the ViewModel/state owner through an injectable factory or test-visible owner before targeting this callback."
+                execution_proof = ""
+                blocked_reason = _blocked_reason(
+                    BLOCKED_NEEDS_CALLBACK_SEAM,
+                    "No verified test path emits through the same delegated ViewModel observable instance.",
+                )
+            default_parameter_names = [
+                match.group(1)
+                for line_no in target_lines_for_context
+                if 0 < line_no <= len(source_lines)
+                for match in [
+                    re.search(
+                        r"\b([A-Za-z_][A-Za-z0-9_]*)\s*:.*=",
+                        source_lines[line_no - 1],
+                    )
+                ]
+                if match
+            ]
+            source_calls = [
+                _snippet_for_range(source_lines, call.span.start_line, call.span.end_line)
+                for call in analysis_report.calls
+                if call.name == function["name"]
+                and not function["start"] <= call.span.start_line <= function["end"]
+            ]
+            if (
+                function.get("visibility") == "private"
+                and default_parameter_names
+                and source_calls
+                and all(
+                    all(re.search(rf"\b{re.escape(parameter)}\s*=", call) for parameter in default_parameter_names)
+                    for call in source_calls
+                )
+            ):
+                bucket_name = "blocked"
+                fixture = "unused_private_default_argument"
+                reason = "The missed compiler branch is a private default argument, but every production call supplies that argument explicitly."
+                action = "Remove the unused default or expose a public call shape that intentionally omits the argument."
+                execution_proof = ""
+                blocked_reason = _blocked_reason(
+                    BLOCKED_FIXED_INTERNAL_BRANCH_INPUT,
+                    "No public production call can select the private default-argument branch.",
+                )
+            if (
+                bucket_name == "safe"
+                and fixture in {"verified_ui_click", "verified_menu_callback"}
+                and categories & {"android_fragment", "plain_fragment", "hilt_fragment", "hilt_entrypoint"}
+            ):
+                bucket_name = "attemptable"
+                reason += " The trigger also requires a verified attached Fragment fixture."
+                execution_proof = (
+                    f"{execution_proof} Requires successful Fragment attachment before invoking the trigger."
+                ).strip()
             opportunity = CoverageOpportunity(
                 name=opportunity_name,
                 bucket=bucket_name,
@@ -1513,7 +1663,7 @@ def build_coverage_opportunity_plan(
                     "acceptable_branch_gap: defensive branch gap already measured and accepted as non-actionable.",
                 )
             elif _test_mentions_entry_point(existing_test_code, name):
-                opportunity.reason += " Existing tests mention this entry point, but no measured no-delta rejection exists yet."
+                opportunity.reason += " Existing test code references this entry point; Kover still reports this gap and no measured no-delta rejection exists yet."
                 opportunity.action += " Use branch-specific inputs/assertions instead of repeating the existing call shape."
             if bucket_name == "safe":
                 if opportunity.bucket == "blocked":
@@ -1542,17 +1692,26 @@ def build_coverage_opportunity_plan(
 
     cap = incremental_safe_cap()
     budget = incremental_line_budget()
+    enabled_buckets = set(get_config().coverage_buckets)
     selected_safe, _ = _select_largest_fixture_opportunities(
-        safe,
+        safe if "safe" in enabled_buckets else [],
         weight_fn=coverage_weight,
         cap=cap,
         line_budget=budget,
     )
 
     selected_attemptable = []
-    if attemptable and not selected_safe:
+    if "attemptable" in enabled_buckets and attemptable and not selected_safe:
         selected_attemptable, _ = _select_largest_fixture_opportunities(
             attemptable,
+            weight_fn=coverage_weight,
+            cap=cap,
+            line_budget=budget,
+        )
+    selected_blocked = []
+    if "blocked" in enabled_buckets and blocked and not selected_safe and not selected_attemptable:
+        selected_blocked, _ = _select_largest_fixture_opportunities(
+            blocked,
             weight_fn=coverage_weight,
             cap=cap,
             line_budget=budget,
@@ -1563,6 +1722,7 @@ def build_coverage_opportunity_plan(
     plan = {
         "selected_safe": selected_safe,
         "selected_attemptable": selected_attemptable,
+        "selected_blocked": selected_blocked,
         "alternatives": alternatives,
         "blocked": blocked,
     }
@@ -1597,6 +1757,7 @@ def format_coverage_opportunity_plan(opportunity_plan, include_unselected: bool 
 
     selected_safe = opportunity_plan.get("selected_safe", [])
     selected_attemptable = opportunity_plan.get("selected_attemptable", [])
+    selected_blocked = opportunity_plan.get("selected_blocked", [])
     alternatives = opportunity_plan.get("alternatives", [])
     blocked = opportunity_plan.get("blocked", [])
     lines = [
@@ -1612,6 +1773,14 @@ def format_coverage_opportunity_plan(opportunity_plan, include_unselected: bool 
                 "",
                 "Selected controlled-risk opportunities:",
                 *(format_opportunity(index, opportunity) for index, opportunity in enumerate(selected_attemptable, 1)),
+            ]
+        )
+    if selected_blocked:
+        lines.extend(
+            [
+                "",
+                "Selected blocked opportunities by explicit CLI override:",
+                *(format_opportunity(index, opportunity) for index, opportunity in enumerate(selected_blocked, 1)),
             ]
         )
     if include_unselected and alternatives:
@@ -1681,7 +1850,7 @@ def coverage_acceptance_diagnostics(before, after) -> str:
 
 
 def selected_opportunity_lines(opportunity_plan) -> tuple[set[int], set[int]]:
-    selected = list(opportunity_plan.get("selected_safe", [])) + list(opportunity_plan.get("selected_attemptable", []))
+    selected = _selected_opportunities(opportunity_plan)
     selected_lines: set[int] = set()
     selected_branches: set[int] = set()
     for opportunity in selected:
@@ -1712,7 +1881,7 @@ def coverage_candidate_acceptance_decision(opportunity_plan, before, after, sour
     selected_lines, selected_branches = selected_opportunity_lines(opportunity_plan)
     selected_names = {
         opportunity.name
-        for opportunity in (list(opportunity_plan.get("selected_safe", [])) + list(opportunity_plan.get("selected_attemptable", [])))
+        for opportunity in _selected_opportunities(opportunity_plan)
     }
     resolved_lines = sorted(set(before.missed_lines) - set(after.missed_lines))
     new_missed_lines = sorted(set(after.missed_lines) - set(before.missed_lines))
@@ -1854,6 +2023,7 @@ def build_incremental_coverage_strategy(
         set(gap.missed_lines + gap.partial_branch_lines)
     )
     branch_only = gap.line_coverage[0] == 0 and gap.branch_coverage[0] > 0
+    selected_blocked = bool((opportunity_plan or {}).get("selected_blocked"))
     bullets = [
         "### DETERMINISTIC INCREMENTAL COVERAGE STRATEGY",
         f"- Target class: {class_name}",
@@ -1866,7 +2036,11 @@ def build_incremental_coverage_strategy(
         "- Compatible opportunities share the same fixture, runner, dispatcher/lifecycle setup, dependency surface, and public-test strategy.",
         "- Use compact table-style tests when multiple public methods or states share the same assertion pattern.",
         "- Do not mix unrelated or incompatible opportunities just to increase coverage quantity.",
-        "- Do not generate no-op tests for blocked opportunities; choose selected safe or controlled-risk opportunities only.",
+        (
+            "- The CLI explicitly selected blocked opportunities; attempt only their documented public path without reflection, private calls, invented seams, or production edits."
+            if selected_blocked
+            else "- Do not generate no-op tests for blocked opportunities; choose selected safe or controlled-risk opportunities only."
+        ),
         "- Do not cover missed lines by calling delegated singleton helpers (getInstance companions, shared dialog utilities) directly from tests; exercise the target class public entry path that reaches those lines.",
         "- Immediate pre-launch state assertions are noise when Kover target lines are inside an uncontrolled coroutine body.",
         "- Cover the maximum selected reachable opportunities in this generation without speculative private access or unsupported framework setup.",
@@ -2114,14 +2288,18 @@ async def run_gradle_and_parse_gap(
     source_file_path: str,
     source_code: str,
     log_title: str,
+    verified_gradle_output: str | None = None,
 ):
-    gradle_output = await run_gradle_with_heartbeat(
+    gradle_output = verified_gradle_output or await run_gradle_with_heartbeat(
         mcp_tools,
         project_root,
         offline=gradle_offline,
         tasks=gradle_tasks,
     )
-    log_block(log_title, gradle_output or "No Gradle output captured.", category="gradle", console=True)
+    if verified_gradle_output and relevant_gradle_tasks_executed(gradle_output):
+        log_message("✅ Reusing fresh Gradle/Kover output from repair verification.", category="success")
+    else:
+        log_block(log_title, gradle_output or "No Gradle output captured.", category="gradle", console=True)
     if not is_gradle_success(gradle_output):
         return False, None, gradle_output
     if not relevant_gradle_tasks_executed(gradle_output):
@@ -2326,7 +2504,7 @@ async def _run_incremental_coverage_generation_impl(
         coverage_opportunity_plan,
         include_unselected=False,
     )
-    if not coverage_opportunity_plan.get("selected_safe") and not coverage_opportunity_plan.get("selected_attemptable"):
+    if not _selected_opportunities(coverage_opportunity_plan):
         write_blocked_coverage_report(
             source_file_path,
             [
@@ -2351,6 +2529,7 @@ async def _run_incremental_coverage_generation_impl(
         selected_lines=sorted(selected_opportunity_lines(coverage_opportunity_plan)[0]),
         selected_branch_lines=sorted(selected_opportunity_lines(coverage_opportunity_plan)[1]),
         selected_methods=[item.name for item in _selected_opportunities(coverage_opportunity_plan)],
+        coverage_buckets=get_config().coverage_buckets,
     )
     gap_relevant_risk_context = filter_source_risk_context_for_gap(source_risk_context, gap)
     incremental_strategy = build_incremental_coverage_strategy(
@@ -2418,27 +2597,27 @@ async def _run_incremental_coverage_generation_impl(
         return False
 
     def supplemental_validation_issues(code: str) -> list[str]:
-        if anchor_test_exists:
-            return list(
-                dict.fromkeys(
-                    coverage_candidate_intent_issues(code, coverage_opportunity_plan)
-                    + collect_incremental_orchestration_issues(
-                        code,
-                        coverage_opportunity_plan,
-                        existing_test_code=existing_test_code,
-                    )
+        return list(
+            dict.fromkeys(
+                validate_generated_test_code(
+                    code,
+                    temp_output_file_path,
+                    source_code=source_code,
+                    opportunity_plan=coverage_opportunity_plan,
+                    existing_test_code=existing_test_code,
+                )
+                + coverage_candidate_intent_issues(code, coverage_opportunity_plan)
+                + collect_incremental_orchestration_issues(
+                    code,
+                    coverage_opportunity_plan,
+                    existing_test_code=existing_test_code,
                 )
             )
-        return validate_generated_test_code(
-            code,
-            temp_output_file_path,
-            source_code=source_code,
-            opportunity_plan=coverage_opportunity_plan,
-            existing_test_code=existing_test_code,
         )
 
     validation_issues = supplemental_validation_issues(supplemental_code)
     if validation_issues:
+        seen_validation_failures = set(_validation_issue_fingerprint(validation_issues))
         log_message("⚠️ Supplemental generated test failed static validation:", category="warning")
         for issue in validation_issues:
             log_message(f"   - {issue}", category="warning")
@@ -2467,6 +2646,59 @@ async def _run_incremental_coverage_generation_impl(
         repaired_code = normalize_kotlin_test_code(repaired_code, source_code=source_code)
         repaired_code = force_generated_test_class_name(repaired_code, supplemental_test_class_name)
         repaired_validation_issues = supplemental_validation_issues(repaired_code)
+        patch_round = 0
+        while repaired_code.strip() and repaired_validation_issues:
+            failure_fingerprint = _validation_issue_fingerprint(repaired_validation_issues)
+            if seen_validation_failures.intersection(failure_fingerprint):
+                log_message(
+                    "❌ Static validation failure repeated after repair; stopping this candidate.",
+                    category="error",
+                )
+                break
+            if patch_round >= get_config().max_repair_rounds:
+                log_message("❌ Static validation repair limit reached.", category="error")
+                break
+
+            seen_validation_failures.update(failure_fingerprint)
+            log_message(
+                "⚠️ Repair introduced different static validation issue(s); trying focused JSON patch repair:",
+                category="warning",
+            )
+            for issue in repaired_validation_issues:
+                log_message(f"   - {issue}", category="warning")
+            focused_error_block = (
+                "RELATED ERROR GROUP: Local generated-test validation failure after repair\n\n"
+                + enrich_validation_error_block(repaired_validation_issues)
+            )
+            patches = repair_focused_error_patch_streaming(
+                class_name=supplemental_test_class_name,
+                source_code=source_code,
+                current_test_code=repaired_code,
+                focused_error_block=focused_error_block,
+                verified_context=(
+                    "The previous full-file repair fixed a different validation failure. "
+                    "Apply only the exact minimal correction for the current deterministic issue."
+                ),
+                group_key="Local generated-test validation failure after repair",
+                source_risk_context=gap_relevant_risk_context,
+                output_file_path=temp_output_file_path,
+                source_categories=source_categories,
+                memory_context=retrieve_repair_lessons(
+                    source_categories,
+                    repair_categories={"fixture_strategy"},
+                ),
+            )
+            patched_code, applied_patch_count = _apply_exact_patches(repaired_code, patches)
+            if not applied_patch_count or text_fingerprint(patched_code) == text_fingerprint(repaired_code):
+                log_message("❌ Static validation JSON patch made no effective change.", category="error")
+                break
+            patch_round += 1
+            repaired_code = force_generated_test_class_name(
+                normalize_kotlin_test_code(patched_code, source_code=source_code),
+                supplemental_test_class_name,
+            )
+            repaired_validation_issues = supplemental_validation_issues(repaired_code)
+
         if repaired_code.strip() and not repaired_validation_issues:
             supplemental_code = repaired_code
             validation_issues = []
@@ -2491,6 +2723,9 @@ async def _run_incremental_coverage_generation_impl(
 
     if anchor_test_exists:
         original_existing_test_code = existing_test_code or await mcp_tools.read_file(output_file_path)
+        required_incremental_tests = _test_function_names(supplemental_code) - _test_function_names(
+            original_existing_test_code
+        )
         try:
             merged_code = merge_supplemental_test_code(original_existing_test_code, supplemental_code)
         except Exception as exc:
@@ -2558,6 +2793,7 @@ async def _run_incremental_coverage_generation_impl(
             category="success",
         )
 
+        repair_verification = {}
         merge_success = await verify_and_repair_test_with_mcp(
             mcp_tools=mcp_tools,
             class_name=class_name,
@@ -2570,7 +2806,14 @@ async def _run_incremental_coverage_generation_impl(
                 gap_relevant_risk_context
                 + "\n\nThis is direct incremental coverage mode. Preserve existing tests and keep the newly merged "
                 "coverage additions only when they compile and improve the target Kover gap."
+                + (
+                    "\nRequired newly merged @Test functions that repair must preserve: "
+                    + ", ".join(sorted(required_incremental_tests))
+                    if required_incremental_tests
+                    else ""
+                )
             ),
+            verification_result=repair_verification,
         )
         if not merge_success:
             await mcp_tools.write_file(output_file_path, original_existing_test_code)
@@ -2592,6 +2835,48 @@ async def _run_incremental_coverage_generation_impl(
             )
             return False
 
+        repaired_test_code = await mcp_tools.read_file(output_file_path)
+        missing_incremental_tests = required_incremental_tests - _test_function_names(repaired_test_code)
+        if missing_incremental_tests:
+            await mcp_tools.write_file(output_file_path, original_existing_test_code)
+            evidence = "Gradle repair removed selected incremental tests: " + ", ".join(
+                sorted(missing_incremental_tests)
+            )
+            record_kover_rejected_attempt(
+                project_root,
+                source_file_path=source_file_path,
+                opportunity_plan=coverage_opportunity_plan,
+                gradle_tasks=gradle_tasks,
+                failure_stage="repair_dropped_candidate",
+                evidence=evidence,
+                source_code=source_code,
+                existing_test_code=existing_test_code,
+                disposition=DISPOSITION_PIPELINE_UNRESOLVED,
+            )
+            log_message(f"❌ {evidence}. Restored original existing test file.", category="error")
+            return False
+
+        repaired_intent_issues = coverage_candidate_intent_issues(
+            _test_functions_named(repaired_test_code, required_incremental_tests),
+            coverage_opportunity_plan,
+        )
+        if repaired_intent_issues:
+            await mcp_tools.write_file(output_file_path, original_existing_test_code)
+            evidence = "Gradle repair removed selected coverage intent: " + "; ".join(repaired_intent_issues)
+            record_kover_rejected_attempt(
+                project_root,
+                source_file_path=source_file_path,
+                opportunity_plan=coverage_opportunity_plan,
+                gradle_tasks=gradle_tasks,
+                failure_stage="repair_dropped_intent",
+                evidence=evidence,
+                source_code=source_code,
+                existing_test_code=existing_test_code,
+                disposition=DISPOSITION_PIPELINE_UNRESOLVED,
+            )
+            log_message(f"❌ {evidence}. Restored original existing test file.", category="error")
+            return False
+
         final_passed, final_gap, _ = await run_gradle_and_parse_gap(
             mcp_tools=mcp_tools,
             project_root=project_root,
@@ -2601,6 +2886,7 @@ async def _run_incremental_coverage_generation_impl(
             source_file_path=source_file_path,
             source_code=source_code,
             log_title="GRADLE/KOVER OUTPUT AFTER DIRECT INCREMENTAL MERGE",
+            verified_gradle_output=repair_verification.get("gradle_output"),
         )
         if not final_passed or not final_gap:
             await mcp_tools.write_file(output_file_path, original_existing_test_code)
@@ -2679,10 +2965,7 @@ async def _run_incremental_coverage_generation_impl(
                     opportunity,
                     evidence=f"Kover candidate rejected after Gradle pass: {direct_acceptance.reason}",
                 )
-                for opportunity in (
-                    list(coverage_opportunity_plan.get("selected_safe", []))
-                    + list(coverage_opportunity_plan.get("selected_attemptable", []))
-                )
+                for opportunity in _selected_opportunities(coverage_opportunity_plan)
             ],
         )
         record_kover_rejected_attempt(
@@ -2720,6 +3003,7 @@ async def _run_incremental_coverage_generation_impl(
     log_block("INITIAL SUPPLEMENTAL COVERAGE TEST CODE", supplemental_code, category="code", console=False)
     log_message(f"✅ Saved temporary supplemental test file: {temp_output_file_path}", category="success")
 
+    repair_verification = {}
     temp_success = await verify_and_repair_test_with_mcp(
         mcp_tools=mcp_tools,
         class_name=supplemental_test_class_name,
@@ -2729,6 +3013,7 @@ async def _run_incremental_coverage_generation_impl(
         gradle_offline=gradle_offline,
         gradle_tasks=gradle_tasks,
         source_risk_context=gap_relevant_risk_context,
+        verification_result=repair_verification,
     )
 
     if not temp_success:
@@ -2749,6 +3034,7 @@ async def _run_incremental_coverage_generation_impl(
         source_file_path=source_file_path,
         source_code=source_code,
         log_title="GRADLE/KOVER OUTPUT AFTER TEMP SUPPLEMENTAL TEST VERIFICATION",
+        verified_gradle_output=repair_verification.get("gradle_output"),
     )
     if not temp_passed or not temp_gap:
         write_blocked_coverage_report(
@@ -2824,10 +3110,7 @@ async def _run_incremental_coverage_generation_impl(
                     opportunity,
                     evidence=f"Temporary candidate rejected after Gradle pass: {temp_acceptance.reason}",
                 )
-                for opportunity in (
-                    list(coverage_opportunity_plan.get("selected_safe", []))
-                    + list(coverage_opportunity_plan.get("selected_attemptable", []))
-                )
+                for opportunity in _selected_opportunities(coverage_opportunity_plan)
             ],
         )
         log_message(
