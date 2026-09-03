@@ -1,0 +1,35 @@
+rules:
+  - when:
+      test: 'catch\s*\(\s*\w+\s*:\s*NoSuchMethodException\s*\)\s*\{[^}]*\}'
+      flags: S
+    message: >-
+      Apollo reflection helper should fail fast when a getter is wrong.
+      Remove catch/ignore around NoSuchMethodException so invalid generated API assumptions are visible.
+
+  - when:
+      test_contains: ApiExtensionsKt
+      test_not_contains: ApiExt.kt
+    message: >-
+      ApiExt.kt top-level functions compile to ApiExtKt, not ApiExtensionsKt.
+      Resolve the verified generated API package and use its ApiExtKt facade for reflected mapper invocation.
+
+  - when:
+      test: 'getDeclaredMethod\s*\(\s*methodName\s*,\s*\*parameterTypes\s*\)\s*(?:\.\s*)?invoke\s*\(\s*null\s*,\s*\*args\s*\)'
+      flags: S
+      test_contains: ApiExtKt
+      test_not_contains: InvocationTargetException
+    message: >-
+      Reflected ApiExtKt invocation should unwrap InvocationTargetException by throwing targetException.
+      This lets exception assertions see the source exception instead of the reflection wrapper.
+
+  - when:
+      test: '(?m)^\s*val\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*\.to[A-Za-z0-9_]*\([^)]*\)'
+    message: >-
+      Apollo generated input mapper is called directly, exposing the inaccessible api.type return type.
+      Invoke the mapper through ApiExtKt Java reflection, store the result as Any?, and inspect verified getters by reflection only.
+
+  - when:
+      test: '\bas\s+[A-Z][A-Za-z0-9_]*(?:Input|TripsInput|TripInput)\b'
+    message: >-
+      Apollo generated input mapper result is cast to a compile-time api.type class.
+      Keep the reflected result as Any? and inspect verified getters through readApollo(result, "getField").

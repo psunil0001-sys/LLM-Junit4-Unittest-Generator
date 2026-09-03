@@ -1,0 +1,572 @@
+{
+  "schema_version": "1.0",
+  "library": "Robolectric",
+  "version": "4.13",
+  "generated_for": "LLM/RAG unit-test generation",
+  "coverage_note": "Best-effort API index generated from official Robolectric 4.13 Javadoc pages available in this session. It includes package/artifact metadata and high-value public testing/shadow APIs. For a guaranteed exhaustive method/field index, run the included generator_script locally against the official Javadocs or Maven javadoc jars.",
+  "official_sources": {
+    "robolectric_javadoc": "https://robolectric.org/javadoc/4.13/",
+    "all_classes": "https://robolectric.org/javadoc/4.13/allclasses-index.html",
+    "javadoc_io": "https://javadoc.io/doc/org.robolectric/robolectric/4.13/index.html",
+    "release_notes": "https://github.com/robolectric/robolectric/discussions/9269",
+    "maven_group": "org.robolectric"
+  },
+  "maven_coordinates": [
+    "org.robolectric:robolectric:4.13",
+    "org.robolectric:annotations:4.13",
+    "org.robolectric:junit:4.13",
+    "org.robolectric:pluginapi:4.13",
+    "org.robolectric:resources:4.13",
+    "org.robolectric:sandbox:4.13",
+    "org.robolectric:utils:4.13",
+    "org.robolectric:utils-reflector:4.13",
+    "org.robolectric:plugins-maven-dependency-resolver:4.13",
+    "org.robolectric:shadows-framework:4.13",
+    "org.robolectric:shadowapi:4.13",
+    "org.robolectric:shadows-support-v4:4.13"
+  ],
+  "packages": [
+    "android.webkit",
+    "org.robolectric",
+    "org.robolectric.android",
+    "org.robolectric.android.controller",
+    "org.robolectric.android.internal",
+    "org.robolectric.android.util.concurrent",
+    "org.robolectric.annotation",
+    "org.robolectric.annotation.experimental",
+    "org.robolectric.annotation.internal",
+    "org.robolectric.annotation.processing",
+    "org.robolectric.annotation.processing.generator",
+    "org.robolectric.annotation.processing.validator",
+    "org.robolectric.config",
+    "org.robolectric.errorprone.bugpatterns",
+    "org.robolectric.fakes",
+    "org.robolectric.integrationtests.jacoco",
+    "org.robolectric.interceptors",
+    "org.robolectric.internal",
+    "org.robolectric.internal.bytecode",
+    "org.robolectric.internal.dependency",
+    "org.robolectric.junit.rules",
+    "org.robolectric.manifest",
+    "org.robolectric.nativeruntime",
+    "org.robolectric.pluginapi",
+    "org.robolectric.pluginapi.config",
+    "org.robolectric.pluginapi.perf",
+    "org.robolectric.plugins",
+    "org.robolectric.plugins.config",
+    "org.robolectric.preinstrumented",
+    "org.robolectric.res",
+    "org.robolectric.res.android",
+    "org.robolectric.res.builder",
+    "org.robolectric.sandbox",
+    "org.robolectric.shadow.api",
+    "org.robolectric.shadows",
+    "org.robolectric.shadows.gms",
+    "org.robolectric.shadows.gms.common",
+    "org.robolectric.shadows.httpclient",
+    "org.robolectric.shadows.multidex",
+    "org.robolectric.shadows.util",
+    "org.robolectric.util",
+    "org.robolectric.util.inject",
+    "org.robolectric.util.reflector",
+    "org.robolectric.versioning"
+  ],
+  "api_index": [
+    {
+      "class": "org.robolectric.Robolectric",
+      "kind": "class",
+      "purpose": "Main entry point for building and controlling Android components in JVM tests.",
+      "methods": [
+        "static <T extends android.app.Activity> ActivityController<T> buildActivity(Class<T> activityClass)",
+        "static <T extends android.app.Activity> ActivityController<T> buildActivity(Class<T> activityClass, android.content.Intent intent)",
+        "static <T extends android.app.Activity> T setupActivity(Class<T> activityClass)",
+        "static <T extends android.app.Service> ServiceController<T> buildService(Class<T> serviceClass)",
+        "static <T extends android.app.Service> ServiceController<T> buildService(Class<T> serviceClass, android.content.Intent intent)",
+        "static <T extends android.content.ContentProvider> ContentProviderController<T> buildContentProvider(Class<T> contentProviderClass)",
+        "static <T extends android.app.backup.BackupAgent> BackupAgentController<T> buildBackupAgent(Class<T> backupAgentClass)",
+        "static android.os.Looper getForegroundThreadScheduler() [deprecated-style scheduler API; prefer Looper/ShadowLooper APIs where applicable]",
+        "static void flushForegroundThreadScheduler()",
+        "static void flushBackgroundThreadScheduler()"
+      ]
+    },
+    {
+      "class": "org.robolectric.RuntimeEnvironment",
+      "kind": "class",
+      "purpose": "Access to current test Application, API level, qualifiers, and Robolectric runtime state.",
+      "methods": [
+        "static android.app.Application getApplication()",
+        "static int getApiLevel()",
+        "static void setQualifiers(String qualifiers)",
+        "static String getQualifiers()",
+        "static android.content.Context getSystemContext()"
+      ]
+    },
+    {
+      "class": "org.robolectric.Shadows",
+      "kind": "class",
+      "purpose": "Typed shadowOf(...) helpers for Android framework classes.",
+      "methods": [
+        "static ShadowActivity shadowOf(android.app.Activity actual)",
+        "static ShadowApplication shadowOf(android.app.Application actual)",
+        "static ShadowContext shadowOf(android.content.Context actual)",
+        "static ShadowIntent shadowOf(android.content.Intent actual)",
+        "static ShadowLooper shadowOf(android.os.Looper actual)",
+        "static ShadowPackageManager shadowOf(android.content.pm.PackageManager actual)",
+        "static ShadowResources shadowOf(android.content.res.Resources actual)",
+        "static ShadowView shadowOf(android.view.View actual)",
+        "static ShadowDialog shadowOf(android.app.Dialog actual)",
+        "static ShadowToast shadowOf(android.widget.Toast actual)"
+      ]
+    },
+    {
+      "class": "org.robolectric.android.controller.ActivityController<T extends Activity>",
+      "kind": "class",
+      "purpose": "Low-level Activity lifecycle controller.",
+      "methods": [
+        "T get()",
+        "ActivityController<T> create()",
+        "ActivityController<T> create(android.os.Bundle bundle)",
+        "ActivityController<T> start()",
+        "ActivityController<T> restoreInstanceState(android.os.Bundle bundle)",
+        "ActivityController<T> postCreate(android.os.Bundle bundle)",
+        "ActivityController<T> resume()",
+        "ActivityController<T> visible()",
+        "ActivityController<T> pause()",
+        "ActivityController<T> saveInstanceState(android.os.Bundle outState)",
+        "ActivityController<T> stop()",
+        "ActivityController<T> destroy()",
+        "ActivityController<T> setup()",
+        "ActivityController<T> setup(android.os.Bundle bundle)",
+        "void close()"
+      ]
+    },
+    {
+      "class": "org.robolectric.android.controller.ServiceController<T extends Service>",
+      "kind": "class",
+      "purpose": "Low-level Service lifecycle controller.",
+      "methods": [
+        "T get()",
+        "ServiceController<T> create()",
+        "ServiceController<T> bind()",
+        "ServiceController<T> unbind()",
+        "ServiceController<T> startCommand(int flags, int startId)",
+        "ServiceController<T> destroy()"
+      ]
+    },
+    {
+      "class": "org.robolectric.android.controller.ContentProviderController<T extends ContentProvider>",
+      "kind": "class",
+      "purpose": "Low-level ContentProvider controller.",
+      "methods": [
+        "T get()",
+        "ContentProviderController<T> create()",
+        "ContentProviderController<T> shutdown()"
+      ]
+    },
+    {
+      "class": "org.robolectric.annotation.Config",
+      "kind": "annotation",
+      "purpose": "Per-test/per-class Robolectric configuration.",
+      "elements": [
+        "int[] sdk()",
+        "int minSdk()",
+        "int maxSdk()",
+        "String manifest()",
+        "Class<? extends android.app.Application> application()",
+        "String packageName()",
+        "String[] qualifiers()",
+        "String resourceDir()",
+        "String assetDir()",
+        "Class<?>[] shadows()",
+        "String[] instrumentedPackages()"
+      ]
+    },
+    {
+      "class": "org.robolectric.annotation.LooperMode",
+      "kind": "annotation",
+      "purpose": "Controls Robolectric looper behavior.",
+      "elements": ["LooperMode.Mode value()"],
+      "nested_enums": ["LooperMode.Mode.PAUSED", "LooperMode.Mode.LEGACY", "LooperMode.Mode.INSTRUMENTATION_TEST"]
+    },
+    {
+      "class": "org.robolectric.annotation.GraphicsMode",
+      "kind": "annotation",
+      "purpose": "Controls graphics shadow implementation.",
+      "elements": ["GraphicsMode.Mode value()"],
+      "nested_enums": ["GraphicsMode.Mode.LEGACY", "GraphicsMode.Mode.NATIVE"]
+    },
+    {
+      "class": "org.robolectric.annotation.SQLiteMode",
+      "kind": "annotation",
+      "purpose": "Controls SQLite shadow implementation.",
+      "elements": ["SQLiteMode.Mode value()"],
+      "nested_enums": ["SQLiteMode.Mode.LEGACY", "SQLiteMode.Mode.NATIVE"]
+    },
+    {
+      "class": "org.robolectric.shadow.api.Shadow",
+      "kind": "class",
+      "purpose": "Low-level shadow extraction/new-instance helpers.",
+      "methods": [
+        "static <T> T extract(Object instance)",
+        "static <T> T newInstanceOf(Class<T> clazz)",
+        "static <T> T newInstance(Class<T> clazz, Class<?>[] parameterTypes, Object[] params)",
+        "static Object directlyOn(Object shadowedObject, Class<?> clazz, String methodName, Class<?>[] paramTypes, Object[] params)",
+        "static void invokeConstructor(Class<?> clazz, Object instance, Class<?>[] paramTypes, Object[] params)"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowLooper",
+      "kind": "class",
+      "purpose": "Controls Android Looper execution in tests.",
+      "methods": [
+        "static ShadowLooper getShadowMainLooper()",
+        "static void idleMainLooper()",
+        "static void idleMainLooper(long interval, java.util.concurrent.TimeUnit unit)",
+        "static void runUiThreadTasks()",
+        "static void runUiThreadTasksIncludingDelayedTasks()",
+        "static void pauseMainLooper()",
+        "static void unPauseMainLooper()",
+        "void idle()",
+        "void idleFor(long interval, java.util.concurrent.TimeUnit unit)",
+        "void runToEndOfTasks()",
+        "void pause()",
+        "void unPause()",
+        "int getScheduler().size()"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowLog",
+      "kind": "class",
+      "purpose": "Capture and assert Android Log output.",
+      "fields": ["public static PrintStream stream"],
+      "methods": [
+        "static java.util.List<ShadowLog.LogItem> getLogs()",
+        "static java.util.List<ShadowLog.LogItem> getLogsForTag(String tag)",
+        "static void clear()",
+        "static void setupLogging()"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowActivity",
+      "kind": "class",
+      "purpose": "Test APIs for Activity state, started activities, permissions, and dialogs.",
+      "methods": [
+        "Intent getNextStartedActivity()",
+        "ShadowActivity.IntentForResult getNextStartedActivityForResult()",
+        "Intent peekNextStartedActivity()",
+        "void receiveResult(Intent requestIntent, int resultCode, Intent data)",
+        "Intent getResultIntent()",
+        "int getResultCode()",
+        "boolean isFinishing()",
+        "void grantPermissions(String... permissions)",
+        "void denyPermissions(String... permissions)",
+        "void setRequestedOrientation(int requestedOrientation)",
+        "int getRequestedOrientation()",
+        "Dialog getLatestDialog()"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowApplication",
+      "kind": "class",
+      "purpose": "Test APIs for Application-level broadcasts, services, permissions and global state. Prefer Shadows.shadowOf(ApplicationProvider.getApplicationContext()).",
+      "methods": [
+        "static ShadowApplication getInstance() — DEPRECATED; use Shadows.shadowOf(ApplicationProvider.getApplicationContext())",
+        "Intent getNextStartedActivity()",
+        "Intent peekNextStartedActivity()",
+        "Intent getNextStartedService()",
+        "Intent getNextStoppedService()",
+        "void grantPermissions(String... permissions) — instance method via shadowOf(application)",
+        "void denyPermissions(String... permissions) — instance method via shadowOf(application)",
+        "void sendBroadcast(Intent intent)",
+        "java.util.List<Intent> getBroadcastIntents()",
+        "void clearStartedServices()"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowContextWrapper",
+      "kind": "class",
+      "purpose": "Permission grant/deny on a Context shadow instance. Not Shadows.grantPermissions static.",
+      "methods": [
+        "void grantPermissions(String... permissionNames)",
+        "void grantPermissions(int pid, int uid, String... permissions)",
+        "void denyPermissions(String... permissionNames)",
+        "void denyPermissions(int pid, int uid, String... permissions)"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowPackageManager",
+      "kind": "class",
+      "purpose": "Fake package manager state and package/component registration.",
+      "methods": [
+        "void addPackage(android.content.pm.PackageInfo packageInfo)",
+        "void removePackage(String packageName)",
+        "void addResolveInfoForIntent(Intent intent, ResolveInfo info)",
+        "void setResolveInfosForIntent(Intent intent, java.util.List<ResolveInfo> info)",
+        "void addActivityIfNotPresent(android.content.ComponentName componentName)",
+        "void addServiceIfNotPresent(android.content.ComponentName componentName)",
+        "void addReceiverIfNotPresent(android.content.ComponentName componentName)",
+        "void addProviderIfNotPresent(android.content.ComponentName componentName)",
+        "void setSystemFeature(String name, boolean supported)",
+        "void setApplicationEnabledSetting(String packageName, int newState, int flags)",
+        "int getApplicationEnabledSetting(String packageName)",
+        "void setComponentEnabledSetting(ComponentName componentName, int newState, int flags)",
+        "int getComponentEnabledSetting(ComponentName componentName)",
+        "void setInstallerPackageName(String targetPackage, String installerPackageName)"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowNotificationManager",
+      "kind": "class",
+      "purpose": "Inspect and control notifications and notification channels.",
+      "methods": [
+        "int size()",
+        "java.util.List<Notification> getAllNotifications()",
+        "Notification getNotification(int id)",
+        "void cancel(int id)",
+        "void cancelAll()",
+        "void createNotificationChannel(NotificationChannel channel)",
+        "NotificationChannel getNotificationChannel(String channelId)",
+        "void deleteNotificationChannel(String channelId)",
+        "void createNotificationChannelGroup(NotificationChannelGroup group)",
+        "NotificationChannelGroup getNotificationChannelGroup(String groupId)",
+        "void deleteNotificationChannelGroup(String channelGroupId)"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowToast",
+      "kind": "class",
+      "purpose": "Assert Toast messages.",
+      "methods": [
+        "static Toast getLatestToast()",
+        "static String getTextOfLatestToast()",
+        "static void reset()",
+        "CharSequence getText()",
+        "int getDuration()",
+        "boolean isCancelled()"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowDialog",
+      "kind": "class",
+      "purpose": "Inspect latest shown dialogs.",
+      "methods": [
+        "static Dialog getLatestDialog()",
+        "static AlertDialog getLatestAlertDialog()",
+        "static void reset()",
+        "boolean hasBeenDismissed()"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowAlertDialog",
+      "kind": "class",
+      "purpose": "Inspect AlertDialog state.",
+      "methods": [
+        "CharSequence getTitle()",
+        "CharSequence getMessage()",
+        "Button getButton(int whichButton)",
+        "ListView getListView()",
+        "View getView()"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowIntent",
+      "kind": "class",
+      "purpose": "Inspect Intent internals where useful.",
+      "methods": ["Intent getIntent()"]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowView",
+      "kind": "class",
+      "purpose": "Inspect View state and interactions.",
+      "methods": [
+        "boolean checkedPerformClick()",
+        "void callOnAttachedToWindow()",
+        "void callOnDetachedFromWindow()",
+        "OnClickListener getOnClickListener()",
+        "boolean isAttachedToWindow()"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowTextView",
+      "kind": "class",
+      "purpose": "Inspect TextView-specific state.",
+      "methods": ["CharSequence innerText()", "CharSequence getHint()", "int getTextColorHexValue()"]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowWebView",
+      "kind": "class",
+      "purpose": "Inspect WebView load calls without Chromium.",
+      "methods": [
+        "String getLastLoadedUrl()",
+        "ShadowWebView.LoadData getLastLoadData()",
+        "ShadowWebView.LoadDataWithBaseURL getLastLoadDataWithBaseURL()",
+        "void clearLastLoadedUrl()"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowConnectivityManager",
+      "kind": "class",
+      "purpose": "Fake network/connectivity state.",
+      "methods": [
+        "void setActiveNetworkInfo(NetworkInfo networkInfo)",
+        "void setNetworkInfo(int networkType, NetworkInfo networkInfo)",
+        "void setDefaultNetworkActive(boolean isDefaultNetworkActive)",
+        "void addNetwork(Network network, NetworkInfo networkInfo)",
+        "void removeNetwork(Network network)"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowWifiManager",
+      "kind": "class",
+      "purpose": "Fake Wi-Fi manager behavior.",
+      "methods": [
+        "void setWifiEnabled(boolean wifiEnabled)",
+        "void setConnectionInfo(WifiInfo wifiInfo)",
+        "void setScanResults(java.util.List<ScanResult> scanResults)",
+        "java.util.List<ScanResult> getScanResults()",
+        "void setDhcpInfo(DhcpInfo dhcpInfo)",
+        "void setWifiState(int wifiState)"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowTelephonyManager",
+      "kind": "class",
+      "purpose": "Fake TelephonyManager data.",
+      "methods": [
+        "void setDeviceId(String deviceId)",
+        "void setImei(String imei)",
+        "void setMeid(String meid)",
+        "void setLine1Number(String line1Number)",
+        "void setNetworkOperatorName(String name)",
+        "void setNetworkOperator(String operator)",
+        "void setSimOperatorName(String name)",
+        "void setSimOperator(String operator)",
+        "void setPhoneType(int phoneType)",
+        "void setCallState(int callState)",
+        "void setDataState(int dataState)",
+        "void setVoiceMailNumber(String voicemailNumber)"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowLocationManager",
+      "kind": "class",
+      "purpose": "Fake provider/location/GPS state.",
+      "methods": [
+        "void setProviderEnabled(String provider, boolean enabled)",
+        "void setLastKnownLocation(String provider, Location location)",
+        "void simulateLocation(Location location)",
+        "void addProvider(String name, ProviderProperties properties)",
+        "void removeProvider(String name)"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowSensorManager",
+      "kind": "class",
+      "purpose": "Fake sensors and listener registration.",
+      "methods": [
+        "void addSensor(Sensor sensor)",
+        "void removeSensor(Sensor sensor)",
+        "java.util.List<Sensor> getSensorList(int type)",
+        "boolean hasListener(SensorEventListener listener)"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowPowerManager",
+      "kind": "class",
+      "purpose": "Fake power/interactive/idle state.",
+      "methods": [
+        "void setIsInteractive(boolean interactive)",
+        "void setIsPowerSaveMode(boolean powerSaveMode)",
+        "void setIsDeviceIdleMode(boolean deviceIdleMode)",
+        "void setIgnoringBatteryOptimizations(String packageName, boolean value)",
+        "void setRebootingUserspaceSupported(boolean supported)"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowSettings",
+      "kind": "class",
+      "purpose": "Fake Android Settings values.",
+      "methods": [
+        "static void setAirplaneMode(boolean isAirplaneMode)",
+        "static void setWifiOn(boolean isWifiOn)",
+        "static void set24HourTimeFormat(boolean use24HourTimeFormat)",
+        "static void setAdbEnabled(boolean adbEnabled)",
+        "static void reset()"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowSystemClock",
+      "kind": "class",
+      "purpose": "Control SystemClock time in tests.",
+      "methods": [
+        "static void setCurrentTimeMillis(long millis)",
+        "static void advanceBy(long time, java.util.concurrent.TimeUnit unit)",
+        "static void advanceBy(java.time.Duration duration)",
+        "static void reset()"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowBuild",
+      "kind": "class",
+      "purpose": "Override android.os.Build values in tests.",
+      "methods": [
+        "static void setBrand(String brand)",
+        "static void setDevice(String device)",
+        "static void setFingerprint(String fingerprint)",
+        "static void setHardware(String hardware)",
+        "static void setManufacturer(String manufacturer)",
+        "static void setModel(String model)",
+        "static void setProduct(String product)",
+        "static void setRadioVersion(String radioVersion)",
+        "static void reset()"
+      ]
+    },
+    {
+      "class": "org.robolectric.shadows.ShadowResources",
+      "kind": "class",
+      "purpose": "Resource shadow helpers.",
+      "methods": [
+        "static void setSystem(Resources resources)",
+        "static Resources getSystem()",
+        "void setConfiguration(Configuration configuration)",
+        "void setQualifiers(String qualifiers)"
+      ]
+    },
+    {
+      "class": "org.robolectric.junit.rules.ExpectedLogMessagesRule",
+      "kind": "junit rule",
+      "purpose": "Allow expected log errors/warnings and fail on unexpected ones.",
+      "methods": [
+        "void expectLogMessage(int level, String tag, String message)",
+        "void expectLogMessagePattern(int level, String tag, Pattern messagePattern)",
+        "void ignoreMissingLoggedTags(boolean ignore)",
+        "void ignoreMissingLoggedException(boolean ignore)"
+      ]
+    },
+    {
+      "class": "org.robolectric.junit.rules.TimeoutRule",
+      "kind": "junit rule",
+      "purpose": "Robolectric timeout rule running tests on the current thread.",
+      "constructors": ["TimeoutRule(long timeout, TimeUnit timeUnit)"]
+    },
+    {
+      "class": "org.robolectric.junit.rules.CloseGuardRule",
+      "kind": "junit rule",
+      "purpose": "Fail tests that leave CloseGuard resources open.",
+      "constructors": ["CloseGuardRule()"]
+    },
+    {
+      "class": "org.robolectric.shadows.util.DataSource",
+      "kind": "class",
+      "purpose": "Opaque media data source key used by media shadows.",
+      "methods": ["static DataSource toDataSource(String path)", "static DataSource toDataSource(android.net.Uri uri)", "static DataSource toDataSource(java.io.FileDescriptor fd)"]
+    }
+  ],
+  "high_value_shadow_classes_present_in_4_13": [
+    "ShadowActivity", "ShadowApplication", "ShadowAssetManager", "ShadowAudioManager", "ShadowBluetoothAdapter", "ShadowBluetoothDevice", "ShadowBuild", "ShadowBundle", "ShadowCamera", "ShadowClipboardManager", "ShadowConnectivityManager", "ShadowContentResolver", "ShadowContextImpl", "ShadowDialog", "ShadowDisplay", "ShadowDownloadManager", "ShadowEnvironment", "ShadowGeocoder", "ShadowInputMethodManager", "ShadowIntent", "ShadowKeyguardManager", "ShadowLocationManager", "ShadowLog", "ShadowLooper", "ShadowMediaPlayer", "ShadowMediaRouter", "ShadowNetworkInfo", "ShadowNotificationManager", "ShadowPackageManager", "ShadowPendingIntent", "ShadowPowerManager", "ShadowResources", "ShadowSensorManager", "ShadowSettings", "ShadowSmsManager", "ShadowSystemClock", "ShadowTelephonyManager", "ShadowToast", "ShadowUserManager", "ShadowVibrator", "ShadowView", "ShadowWebView", "ShadowWifiManager"
+  ],
+  "generator_script": {
+    "purpose": "Generate guaranteed exhaustive API index by scraping Javadoc HTML locally when network access is available.",
+    "python": "import json, re, requests\\nfrom bs4 import BeautifulSoup\\nBASE='https://robolectric.org/javadoc/4.13/'\\nhtml=requests.get(BASE+'allclasses-index.html', timeout=60).text\\nsoup=BeautifulSoup(html,'html.parser')\\nclasses=[]\\nfor a in soup.select('main a[href], .type-summary a[href], a[href$=\\\".html\\\"]'):\\n    href=a.get('href','')\\n    name=a.get_text(' ', strip=True)\\n    if href.endswith('.html') and not href.startswith('http') and name and '/' in href:\\n        classes.append((name, href))\\nseen=set(); out=[]\\nfor name, href in classes:\\n    if href in seen: continue\\n    seen.add(href)\\n    page=requests.get(BASE+href, timeout=60).text\\n    psoup=BeautifulSoup(page,'html.parser')\\n    title=psoup.select_one('h1')\\n    fqcn='.'.join(href[:-5].split('/'))\\n    item={'class': fqcn, 'simple_name': name, 'url': BASE+href, 'methods': [], 'constructors': [], 'fields': [], 'enum_constants': []}\\n    for table_kind, key in [('method-summary','methods'),('constructor-summary','constructors'),('field-summary','fields'),('constant-summary','enum_constants')]:\\n        for sec in psoup.select('[id*=\\\"'+table_kind+'\\\"], section.'+table_kind):\\n            for code in sec.select('code'):\\n                txt=' '.join(code.get_text(' ', strip=True).split())\\n                if txt and txt not in item[key]: item[key].append(txt)\\n    # fallback for JDK17 javadocs\\n    for h in psoup.find_all(['h2','h3']):\\n        label=h.get_text(' ', strip=True).lower()\\n        key=None\\n        if 'method summary' in label: key='methods'\\n        elif 'constructor summary' in label: key='constructors'\\n        elif 'field summary' in label: key='fields'\\n        if key:\\n            nxt=h.find_next(['div','table'])\\n            if nxt:\\n                for code in nxt.select('code'):\\n                    txt=' '.join(code.get_text(' ', strip=True).split())\\n                    if txt and txt not in item[key]: item[key].append(txt)\\n    out.append(item)\\njson.dump({'library':'Robolectric','version':'4.13','source':BASE,'classes':out}, open('robolectric_4_13_full_api_index.json','w'), indent=2)\\nprint('classes', len(out))\\n"
+  }
+}

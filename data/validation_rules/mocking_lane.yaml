@@ -1,0 +1,21 @@
+lanes:
+  mockk: |
+    MOCKING LANE: MockK-only (mandatory for this file).
+    - Use io.mockk only: mockk, mockkObject, mockkStatic, mockkConstructor, anyConstructed, unmockkConstructor, every, coEvery, verify, slot, capture.
+    - FORBIDDEN in this file: org.mockito.*, org.mockito.kotlin.*, whenever, mockStatic, MockedStatic.
+    - For static/Kotlin object seams on this lane use mockkStatic/mockkObject, not Mockito.mockStatic.
+    - SOURCE `Type(args)` is a constructor: mockkConstructor + anyConstructed, not mockkStatic.
+    - When SOURCE constructs UI builders with Context (e.g. AlertDialogBuilder(context)), use ApplicationProvider.getApplicationContext() or a Robolectric Activity (spyk + stub collaborators as needed), not mockk<Context>(relaxed=true) if the real constructor runs.
+  mockito: |
+    MOCKING LANE: Mockito-Kotlin (mandatory for this file).
+    - Use org.mockito.kotlin (mock, whenever, verify, any, eq) and org.mockito.Mockito.mockStatic for Java static/@JvmStatic APIs.
+    - SOURCE `Type(args)` is a constructor: Mockito.mockConstruction, not mockStatic.
+    - FORBIDDEN in this file: io.mockk.*, mockk, mockkObject, mockkStatic, coEvery, every { } (MockK syntax).
+    - Do not import both frameworks; one lane per test file.
+  open: |
+    MOCKING LANE: choose exactly one framework for this TARGET file.
+    - Option A: Mockito-Kotlin — org.mockito.kotlin (mock, whenever, verify, any, eq); org.mockito.Mockito.mockStatic for Java static/@JvmStatic; Mockito.mockConstruction for SOURCE constructors.
+    - Option B: MockK — io.mockk (mockk, mockkObject, mockkStatic, mockkConstructor, anyConstructed, every, coEvery, verify). SOURCE `Type(args)` uses mockkConstructor, not mockkStatic.
+    - FORBIDDEN: mixing both in this file. Do not import io.mockk.* together with org.mockito*.
+    - Do not mix whenever with every { } / mockk / mockkStatic in the same file.
+    - If TARGET already contains one framework, stay on it.

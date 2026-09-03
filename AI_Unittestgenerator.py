@@ -11,7 +11,7 @@ ROOT = str(Path(__file__).resolve().parent.parent)
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from UnitTest_gen.kotlin.generator import async_main
+from UnitTest_gen.kotlin.generator import async_main  # noqa: E402
 
 
 if __name__ == "__main__":

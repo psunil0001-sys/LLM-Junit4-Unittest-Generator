@@ -1,0 +1,45 @@
+rules:
+  - when:
+      source_any:
+        - "@AndroidEntryPoint"
+      source: '(?:class\s+\w+\s*:\s*(?:android\.app\.)?Service\b|: Service\s*\()'
+      test_any:
+        - 'Robolectric\.buildService\s*\('
+        - '\bServiceController\b'
+        - 'controller\.startCommand'
+    message: >-
+      invalid_hilt_service_harness: @AndroidEntryPoint Service tests must start via
+      Context.startService(Intent(context, Cut::class.java)) under @HiltAndroidTest + HiltAndroidRule +
+      HiltTestApplication. Do not use Robolectric.buildService / ServiceController.
+
+  - when:
+      source_any:
+        - "@AndroidEntryPoint"
+      source: '(?:class\s+\w+\s*:\s*(?:android\.app\.)?Service\b|: Service\s*\()'
+      test_any:
+        - 'startService\s*\('
+        - 'context\.startService'
+      test_not_contains: HiltAndroidRule
+    message: >-
+      invalid_hilt_service_harness: starting an @AndroidEntryPoint Service requires
+      @HiltAndroidTest + HiltAndroidRule + @Config(application = HiltTestApplication::class)
+      and hiltRule.inject() before startService.
+
+  - when:
+      source_any:
+        - "@HiltWorker"
+        - CoroutineWorker
+        - "@AssistedInject"
+      test_any:
+        - TestListenableWorkerBuilder
+        - TestWorkerBuilder
+        - androidx.work.testing
+        - buildWorkerParams
+        - HiltWorkerFactory
+        - 'object : WorkerParameters'
+        - WorkerParameters.Factory
+        - androidx.work.Result
+    message: >-
+      invalid_hilt_worker_harness: Unit-test @HiltWorker doWork() with mock/mockk WorkerParameters
+      and the @AssistedInject constructor. Do not use TestListenableWorkerBuilder, work-testing,
+      HiltWorkerFactory, buildWorkerParams, or androidx.work.Result (use ListenableWorker.Result).

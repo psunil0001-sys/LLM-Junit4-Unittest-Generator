@@ -1,0 +1,42 @@
+rules:
+  - when:
+      source_contains: setOnClickListener
+      test_contains_any:
+        - setOnClickListener
+        - OnClickListener
+      test_not_contains: performClick
+    repair: missing_coverage_trigger_click
+
+  - when:
+      source_contains: setMenuItems
+      test_contains: setMenuItems
+      test_not_contains: performClick
+    repair: missing_coverage_trigger_menu
+
+  - when:
+      source_any:
+        - MutableStateFlow
+        - SharedFlow
+      test_contains: runTest
+      test_contains_any:
+        - collect
+        - stateFlow
+        - StateFlow
+      test_not: 'flowOf\s*\(|\.emit\s*\(|advanceUntilIdle|UnconfinedTestDispatcher'
+    repair: missing_coverage_trigger_coroutine
+
+  - when:
+      source_any:
+        - registerForActivityResult
+      test_contains: argumentCaptor
+      test_contains_any:
+        - onResult
+        - registerForActivityResult
+      test_not: 'ActivityResult\s*\('
+    repair: missing_coverage_trigger_activity_result
+
+  - when:
+      source_contains: Build.VERSION
+      test_contains: Build.VERSION
+      test_not: '@Config'
+    repair: missing_coverage_trigger_sdk

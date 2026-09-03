@@ -1,0 +1,6 @@
+    <fragment
+        android:id="@+id/stubDest{index}"
+        android:name="{package}.StubHomeFragment"
+        android:label="StubHomeFragment">
+        <deepLink app:uri="{deeplink_uri}" />
+    </fragment>

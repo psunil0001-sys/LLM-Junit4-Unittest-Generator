@@ -1,0 +1,76 @@
+{
+  "schema_version": "1.0",
+  "library": "AndroidX Navigation testing",
+  "version": "2.8",
+  "purpose": "JVM unit-test APIs for NavController without inventing destination ids or navigate overloads.",
+  "official_references": [
+    "https://developer.android.com/guide/navigation/testing",
+    "https://developer.android.com/reference/androidx/navigation/testing/TestNavHostController"
+  ],
+  "coordinates": {
+    "group_id": "androidx.navigation",
+    "artifact_id": "navigation-testing",
+    "version": "2.8.9",
+    "gradle": "testImplementation(\"androidx.navigation:navigation-testing:2.8.9\")"
+  },
+  "api_index": [
+    {
+      "qualified_name": "androidx.navigation.testing.TestNavHostController",
+      "kind": "class",
+      "purpose": "NavHostController for tests. Call setGraph before navigate. setCurrentDestination only with ids/routes from this module's nav XML.",
+      "members": [
+        "constructor(context: Context)",
+        "fun setGraph(@NavigationRes graphResId: Int)",
+        "fun setGraph(graph: NavGraph)",
+        "fun setCurrentDestination(@IdRes destId: Int)",
+        "fun setCurrentDestination(@IdRes destId: Int, args: Bundle)",
+        "fun setCurrentDestination(destRoute: String)",
+        "fun setCurrentDestination(destRoute: String, args: Bundle)",
+        "val currentDestination: NavDestination?",
+        "fun navigate(@IdRes resId: Int)",
+        "fun navigate(deepLink: Uri)"
+      ]
+    },
+    {
+      "qualified_name": "androidx.navigation.Navigation",
+      "kind": "class",
+      "purpose": "Wire a test NavController onto a view so findNavController() returns it.",
+      "members": [
+        "fun setViewNavController(view: View, controller: NavController?)"
+      ]
+    },
+    {
+      "qualified_name": "androidx.navigation.NavController",
+      "kind": "class",
+      "purpose": "Production NavController. navigate(NavDeepLinkRequest) is Unit — verify with a Kotlin captor, do not stub with whenever/thenAnswer.",
+      "members": [
+        "fun navigate(@IdRes resId: Int)",
+        "fun navigate(deepLink: Uri)",
+        "fun navigate(request: NavDeepLinkRequest)",
+        "val currentDestination: NavDestination?"
+      ]
+    },
+    {
+      "qualified_name": "androidx.navigation.NavDeepLinkRequest",
+      "kind": "class",
+      "purpose": "Deep-link navigation request. Capture with org.mockito.kotlin.argumentCaptor<NavDeepLinkRequest>(), never Java ArgumentCaptor.forClass().capture() (null matcher vs non-null Kotlin param).",
+      "members": [
+        "val uri: Uri?",
+        "val action: String?",
+        "val mimeType: String?"
+      ]
+    },
+    {
+      "class": "Anti-patterns",
+      "purpose": "Do not invent graph ids or skip setGraph.",
+      "methods": [
+        "TestNavHostController without setGraph — currentDestination is uninitialized",
+        "Invented R.id destinations not in this module's navigation XML",
+        "launchFragmentInContainer as the Hilt Fragment host — use a Hilt Activity + setViewNavController",
+        "resume() before Navigation.setViewNavController — onResume navigation fires against the real controller",
+        "Java ArgumentCaptor.forClass(NavDeepLinkRequest::class.java).capture() inside verify",
+        "whenever(navController.navigate(any<NavDeepLinkRequest>())).thenAnswer { }"
+      ]
+    }
+  ]
+}

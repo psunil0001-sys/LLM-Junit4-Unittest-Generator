@@ -1,0 +1,208 @@
+rules:
+  - when:
+      ctx:
+        is_hilt_fragment: true
+      test_contains: EmptyRobolectricApplication
+    message: >-
+      EmptyRobolectricApplication does not satisfy Hilt GeneratedComponent requirements for @AndroidEntryPoint fragments.
+      Use HiltTestApplication with HiltAndroidRule, or avoid attaching the fragment lifecycle.
+
+  - when:
+      ctx:
+        is_hilt_fragment: true
+      test: '\blaunchFragmentInContainer\s*<|\bFragmentScenario\.launchInContainer\b'
+    message: >-
+      @AndroidEntryPoint fragment lifecycle tests should not use plain launchFragmentInContainer/FragmentScenario.launchInContainer.
+      Those hosts use EmptyFragmentActivity rather than an @AndroidEntryPoint host activity.
+      Launch/create a verified Hilt host activity with ActivityScenario/Robolectric, create the fragment manually, attach it with supportFragmentManager.commitNow(),
+      call activityController.start() before fragment.requireView() when using Robolectric ActivityController, then install TestNavHostController after attachment.
+
+  - when:
+      ctx:
+        is_hilt_fragment: true
+      test_contains: activityClass=
+    message: >-
+      The generated test is trying to pass `activityClass = ...` into launchFragmentInContainer/FragmentScenario, but that is not a verified local API here.
+      Replace this with the module's manifest-declared HiltTestActivity and the actual fragment class under test.
+      For Robolectric, use: val activityController = Robolectric.buildActivity(HiltTestActivity::class.java)
+      .theme(androidx.appcompat.R.style.Theme_AppCompat).create();
+      attach TargetFragment with commitNow();
+      activityController.start(); install any NavController; then activityController.resume().
+      Do not call activity.setTheme(...) after create().
+
+  - when:
+      ctx:
+        is_hilt_fragment: true
+      test: '\bgetDeclared(?:Field|Method)\s*\(|\bisAccessible\s*=\s*true\b'
+    repair_prefix: invalid_hilt_manual_injection
+    repair: invalid_hilt_manual_injection
+
+  - when:
+      ctx:
+        is_hilt_fragment: true
+      test: '\.\s*on(?:CreateView|ViewCreated)\s*\('
+      test_contains_any:
+        - .commitNow()
+        - supportFragmentManager
+        - Robolectric.buildActivity
+    message: >-
+      invalid_fragment_lifecycle_reentry: commitNow()/FragmentManager attachment already invokes Fragment lifecycle.
+      Do not call onCreateView/onViewCreated manually after attachment; create a fresh Fragment with arguments before attach
+      and drive only public UI/callback behavior.
+
+  - when:
+      ctx:
+        is_hilt_fragment: true
+      test: 'whenever\s*\([^)]*findNavController\s*\('
+      source_not_contains: NavDeepLinkRequest
+    message: >-
+      Mockito cannot stub the AndroidX fragment.findNavController() extension on a real Fragment.
+      Use TestNavHostController with setGraph(actual navigation graph) and Navigation.setViewNavController after real fragment attachment.
+      For Robolectric ActivityController hosts, call activityController.start() after commitNow() before fragment.requireView().
+
+  - when:
+      ctx:
+        is_hilt_fragment: true
+      test: 'whenever\s*\([^)]*findNavController\s*\('
+      source_contains: NavDeepLinkRequest
+    repair: invalid_nav_deeplink_fixture
+
+  - when:
+      ctx:
+        is_hilt_fragment: true
+        source_has_find_nav: true
+      test_not_contains: TestNavHostController
+      source_not_contains: NavDeepLinkRequest
+    message: >-
+      Fragment lifecycle tests for source that calls findNavController() should install TestNavHostController
+      with setGraph(R.navigation.<module_graph>) (or an inflated NavGraph), then Navigation.setViewNavController
+      on the fragment view after attachment.
+      For Robolectric ActivityController hosts, call activityController.start() after commitNow() before fragment.requireView().
+
+  - when:
+      ctx:
+        is_hilt_fragment: true
+        source_has_find_nav: true
+      test_contains: TestNavHostController
+      test_not_contains: .setGraph(
+      source_not_contains: NavDeepLinkRequest
+    message: >-
+      invalid_nav_graph_fixture: TestNavHostController for findNavController() paths must call setGraph(...)
+      with the module's actual navigation graph before Navigation.setViewNavController.
+
+  - when:
+      ctx:
+        is_hilt_fragment: true
+        source_has_find_nav: true
+      test_not_contains: TestNavHostController
+      test: '\b(?:mock|mockk)\s*<\s*NavController\s*>|\bmock\s*\(\s*NavController\s*::\s*class'
+      source_not_contains: NavDeepLinkRequest
+    message: >-
+      invalid_nav_graph_fixture: findNavController() paths must use TestNavHostController with setGraph(actual graph),
+      not a mocked NavController. Reserve mock NavController for NavDeepLinkRequest URI capture.
+
+  - when:
+      ctx:
+        is_hilt_fragment: true
+      test: '\b(getPrivate|readPrivate|binding)\s*<[^>]*Binding\b|Fragment[A-Za-z0-9_]*Binding'
+    message: >-
+      @AndroidEntryPoint Fragment tests should assert visible public view behavior from the attached root view.
+      Do not access private binding fields or generated binding classes from the test.
+
+  - when:
+      ctx:
+        is_hilt_fragment: true
+      test: '\.\s*on(?:CreateView|ViewCreated)\s*\('
+    message: >-
+      @AndroidEntryPoint fragment lifecycle tests should launch a verified Hilt host activity and attach the fragment with supportFragmentManager.commitNow().
+      Use full Hilt/Robolectric attachment when supported, or generate direct public-contract tests with observable assertions.
+
+  - when:
+      ctx:
+        source_is_hilt_fragment: true
+      test_contains_any:
+        - supportFragmentManager
+        - .commitNow()
+        - .commitNowAllowingStateLoss()
+        - fragment.requireView()
+        - Navigation.setViewNavController
+      test_not_contains: '@HiltAndroidTest'
+    message: >-
+      invalid_hilt_lifecycle_setup: attached @AndroidEntryPoint Fragment tests require @HiltAndroidTest, HiltAndroidRule, @Config(application = HiltTestApplication::class).
+
+  - when:
+      ctx:
+        source_is_hilt_fragment: true
+      test_contains_any:
+        - Robolectric.buildActivity(
+        - supportFragmentManager
+      test_not:
+        - 'Robolectric\.buildActivity\([^)]*\)[\s\S]{0,200}\.create\s*\('
+        - '\bactivityController\.create\s*\('
+    repair_prefix: invalid_activity_controller_order
+    repair: invalid_activity_controller_order
+
+  - when:
+      source_contains: '@AndroidEntryPoint'
+      test: 'Robolectric\.buildActivity\([^)]*\)\s*\.\s*theme\s*\('
+    repair_prefix: invalid_appcompat_theme_order
+    repair: invalid_appcompat_theme_order
+
+  - when:
+      source_contains: '@AndroidEntryPoint'
+      test_contains: Robolectric.buildActivity(HiltTestActivity::class.java)
+      test: 'Robolectric\.buildActivity\(HiltTestActivity::class\.java\)\.create\(\)\.resume\('
+      test_not_contains:
+        - .theme(
+        - .setTheme(
+    message: >-
+      Robolectric HiltTestActivity setup should apply Theme_AppCompat before the Fragment view inflates.
+      Use `activityController = Robolectric.buildActivity(HiltTestActivity::class.java).create();
+      activityController.get().setTheme(androidx.appcompat.R.style.Theme_AppCompat)`;
+      attach the Fragment with commitNow(); activityController.start(); install any NavController; activityController.resume().
+
+  - when:
+      ctx:
+        source_is_hilt_fragment: true
+        allows_bindvalue_viewmodel_fallback: false
+      test: '@BindValue\s+lateinit\s+var\s+\w+\s*:\s*\w*ViewModel\b'
+    repair_prefix: invalid_bindvalue_viewmodel
+    repair: invalid_bindvalue_viewmodel
+
+  - when:
+      test: 'getDeclaredField\s*\(\s*["''](?:_uiState|uiState|_state|state)["'']'
+      flags: I
+    repair_prefix: invalid_stateflow_reflection
+    repair: invalid_stateflow_reflection
+
+  - when:
+      ctx:
+        source_is_fragment: true
+        source_has_delegated_viewmodel: true
+      test: 'ViewModelProvider\s*\([^)]*\)\s*\.\s*get\s*\('
+    repair_prefix: invalid_delegated_viewmodel_provider
+    repair: invalid_delegated_viewmodel_provider
+
+  - when:
+      ctx:
+        source_is_fragment: true
+        source_has_setmenuitems: true
+      test_all:
+        - '\bmenuitems?\b'
+        - '\bverify\s*\('
+      test_not_contains:
+        - captor
+        - capture
+        - onclick
+        - invoke
+        - performclick
+        - argumentcaptor
+    repair_prefix: missing_coverage_trigger_menu
+    repair: missing_coverage_trigger_menu
+
+  - when:
+      ctx:
+        source_declares_viewmodel: true
+      test: 'verify\s*\([^)]+\)\s*\.\s*\w+\s*='
+    repair_prefix: invalid_property_assignment_verification
+    repair: invalid_property_assignment_verification

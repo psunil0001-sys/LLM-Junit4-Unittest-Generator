@@ -1,0 +1,397 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-07-14T06:35:14Z",
+  "name": "okhttp",
+  "coordinates": {
+    "group_id": "com.squareup.okhttp3",
+    "artifact_id": "okhttp",
+    "version": "4.12.0",
+    "gradle": "implementation(\"com.squareup.okhttp3:okhttp:4.12.0\")"
+  },
+  "description": "Square's HTTP client for Android and the JVM.",
+  "source_confidence": "high for coordinates and curated public test-facing APIs; bytecode-exhaustive regeneration recommended using included recipe.",
+  "official_references": [
+    "https://repo1.maven.org/maven2/com/squareup/okhttp3/okhttp/4.12.0/",
+    "https://github.com/square/okhttp",
+    "https://square.github.io/okhttp/4.x/okhttp/"
+  ],
+  "packages": [
+    {
+      "name": "okhttp3",
+      "purpose": "Core OkHttp request, response, body, headers, URL, client, interceptor, and call APIs."
+    }
+  ],
+  "classes": [
+    {
+      "qualified_name": "okhttp3.ResponseBody",
+      "kind": "abstract class",
+      "members": [
+        "abstract fun contentType(): MediaType?",
+        "abstract fun contentLength(): Long",
+        "fun source(): okio.BufferedSource",
+        "fun byteStream(): java.io.InputStream",
+        "fun byteString(): okio.ByteString",
+        "fun bytes(): ByteArray",
+        "fun charStream(): java.io.Reader",
+        "fun string(): String",
+        "fun close()",
+        "companion fun create(contentType: MediaType?, content: String): ResponseBody",
+        "companion fun create(contentType: MediaType?, content: ByteArray): ResponseBody",
+        "companion fun create(contentType: MediaType?, content: okio.ByteString): ResponseBody"
+      ],
+      "purpose": "One-shot HTTP response body. Commonly used to construct Retrofit Response.error(...) fixtures."
+    },
+    {
+      "qualified_name": "okhttp3.RequestBody",
+      "kind": "abstract class",
+      "members": [
+        "abstract fun contentType(): MediaType?",
+        "open fun contentLength(): Long",
+        "abstract fun writeTo(sink: okio.BufferedSink)",
+        "open fun isDuplex(): Boolean",
+        "open fun isOneShot(): Boolean",
+        "companion fun create(contentType: MediaType?, content: String): RequestBody",
+        "companion fun create(contentType: MediaType?, content: ByteArray): RequestBody",
+        "companion fun create(contentType: MediaType?, content: okio.ByteString): RequestBody",
+        "companion fun create(contentType: MediaType?, file: java.io.File): RequestBody"
+      ],
+      "purpose": "HTTP request body abstraction and construction helpers."
+    },
+    {
+      "qualified_name": "okhttp3.MediaType",
+      "kind": "class",
+      "members": [
+        "fun type(): String",
+        "fun subtype(): String",
+        "fun charset(): java.nio.charset.Charset?",
+        "fun charset(defaultValue: java.nio.charset.Charset?): java.nio.charset.Charset?",
+        "fun parameter(name: String): String?",
+        "companion fun get(mediaType: String): MediaType",
+        "companion fun parse(mediaType: String): MediaType?"
+      ],
+      "purpose": "HTTP media type representation used by request and response bodies."
+    },
+    {
+      "qualified_name": "okhttp3.Response",
+      "kind": "class",
+      "members": [
+        "val request: Request",
+        "val protocol: Protocol",
+        "val message: String",
+        "val code: Int",
+        "val handshake: Handshake?",
+        "val headers: Headers",
+        "val body: ResponseBody?",
+        "val networkResponse: Response?",
+        "val cacheResponse: Response?",
+        "val priorResponse: Response?",
+        "val sentRequestAtMillis: Long",
+        "val receivedResponseAtMillis: Long",
+        "fun isSuccessful(): Boolean",
+        "fun header(name: String): String?",
+        "fun headers(name: String): List<String>",
+        "fun peekBody(byteCount: Long): ResponseBody",
+        "fun newBuilder(): Response.Builder",
+        "fun close()"
+      ],
+      "purpose": "Immutable HTTP response. Can be built directly for deterministic tests and Retrofit raw-response fixtures."
+    },
+    {
+      "qualified_name": "okhttp3.Response.Builder",
+      "kind": "class",
+      "members": [
+        "constructor()",
+        "fun request(request: Request): Response.Builder",
+        "fun protocol(protocol: Protocol): Response.Builder",
+        "fun code(code: Int): Response.Builder",
+        "fun message(message: String): Response.Builder",
+        "fun handshake(handshake: Handshake?): Response.Builder",
+        "fun header(name: String, value: String): Response.Builder",
+        "fun addHeader(name: String, value: String): Response.Builder",
+        "fun removeHeader(name: String): Response.Builder",
+        "fun headers(headers: Headers): Response.Builder",
+        "fun body(body: ResponseBody?): Response.Builder",
+        "fun networkResponse(networkResponse: Response?): Response.Builder",
+        "fun cacheResponse(cacheResponse: Response?): Response.Builder",
+        "fun priorResponse(priorResponse: Response?): Response.Builder",
+        "fun sentRequestAtMillis(sentRequestAtMillis: Long): Response.Builder",
+        "fun receivedResponseAtMillis(receivedResponseAtMillis: Long): Response.Builder",
+        "fun build(): Response"
+      ],
+      "purpose": "Builder for constructing raw OkHttp responses in tests."
+    },
+    {
+      "qualified_name": "okhttp3.Request",
+      "kind": "class",
+      "members": [
+        "val url: HttpUrl",
+        "val method: String",
+        "val headers: Headers",
+        "val body: RequestBody?",
+        "fun header(name: String): String?",
+        "fun headers(name: String): List<String>",
+        "fun newBuilder(): Request.Builder"
+      ],
+      "purpose": "Immutable HTTP request."
+    },
+    {
+      "qualified_name": "okhttp3.Request.Builder",
+      "kind": "class",
+      "members": [
+        "constructor()",
+        "fun url(url: HttpUrl): Request.Builder",
+        "fun url(url: String): Request.Builder",
+        "fun url(url: java.net.URL): Request.Builder",
+        "fun header(name: String, value: String): Request.Builder",
+        "fun addHeader(name: String, value: String): Request.Builder",
+        "fun removeHeader(name: String): Request.Builder",
+        "fun headers(headers: Headers): Request.Builder",
+        "fun get(): Request.Builder",
+        "fun head(): Request.Builder",
+        "fun post(body: RequestBody): Request.Builder",
+        "fun delete(body: RequestBody? = null): Request.Builder",
+        "fun put(body: RequestBody): Request.Builder",
+        "fun patch(body: RequestBody): Request.Builder",
+        "fun method(method: String, body: RequestBody?): Request.Builder",
+        "fun build(): Request"
+      ],
+      "purpose": "Builder for deterministic HTTP request fixtures."
+    },
+    {
+      "qualified_name": "okhttp3.Headers",
+      "kind": "class",
+      "members": [
+        "val size: Int",
+        "operator fun get(name: String): String?",
+        "fun values(name: String): List<String>",
+        "fun names(): Set<String>",
+        "fun newBuilder(): Headers.Builder",
+        "companion fun headersOf(vararg namesAndValues: String): Headers"
+      ],
+      "purpose": "Immutable HTTP header collection."
+    },
+    {
+      "qualified_name": "okhttp3.Headers.Builder",
+      "kind": "class",
+      "members": [
+        "constructor()",
+        "fun add(name: String, value: String): Headers.Builder",
+        "fun set(name: String, value: String): Headers.Builder",
+        "fun removeAll(name: String): Headers.Builder",
+        "fun build(): Headers"
+      ],
+      "purpose": "Builder for HTTP header fixtures."
+    },
+    {
+      "qualified_name": "okhttp3.HttpUrl",
+      "kind": "class",
+      "members": [
+        "val scheme: String",
+        "val host: String",
+        "val port: Int",
+        "val encodedPath: String",
+        "val query: String?",
+        "fun newBuilder(): HttpUrl.Builder",
+        "fun resolve(link: String): HttpUrl?",
+        "companion fun get(url: String): HttpUrl",
+        "companion fun parse(url: String): HttpUrl?"
+      ],
+      "purpose": "Canonical HTTP/HTTPS URL representation."
+    },
+    {
+      "qualified_name": "okhttp3.Protocol",
+      "kind": "enum class",
+      "members": [
+        "HTTP_1_0",
+        "HTTP_1_1",
+        "SPDY_3",
+        "HTTP_2",
+        "H2_PRIOR_KNOWLEDGE",
+        "QUIC"
+      ],
+      "purpose": "HTTP protocol identifier used when constructing raw responses."
+    },
+    {
+      "qualified_name": "okhttp3.Interceptor",
+      "kind": "fun interface",
+      "members": [
+        "fun intercept(chain: Interceptor.Chain): Response"
+      ],
+      "purpose": "Intercepts and optionally transforms requests and responses."
+    },
+    {
+      "qualified_name": "okhttp3.Interceptor.Chain",
+      "kind": "interface",
+      "members": [
+        "fun request(): Request",
+        "fun proceed(request: Request): Response",
+        "fun connection(): Connection?",
+        "fun call(): Call",
+        "fun connectTimeoutMillis(): Int",
+        "fun withConnectTimeout(timeout: Int, unit: java.util.concurrent.TimeUnit): Interceptor.Chain",
+        "fun readTimeoutMillis(): Int",
+        "fun withReadTimeout(timeout: Int, unit: java.util.concurrent.TimeUnit): Interceptor.Chain",
+        "fun writeTimeoutMillis(): Int",
+        "fun withWriteTimeout(timeout: Int, unit: java.util.concurrent.TimeUnit): Interceptor.Chain"
+      ],
+      "purpose": "Interceptor chain boundary commonly mocked in unit tests."
+    },
+    {
+      "qualified_name": "okhttp3.OkHttpClient",
+      "kind": "class",
+      "members": [
+        "constructor()",
+        "fun newCall(request: Request): Call",
+        "fun newBuilder(): OkHttpClient.Builder"
+      ],
+      "purpose": "HTTP client and Call.Factory implementation."
+    },
+    {
+      "qualified_name": "okhttp3.Call",
+      "kind": "interface",
+      "members": [
+        "fun request(): Request",
+        "fun execute(): Response",
+        "fun enqueue(responseCallback: Callback)",
+        "fun cancel()",
+        "fun isExecuted(): Boolean",
+        "fun isCanceled(): Boolean",
+        "fun clone(): Call"
+      ],
+      "purpose": "Prepared HTTP request that can execute synchronously or asynchronously."
+    },
+    {
+      "qualified_name": "okhttp3.Callback",
+      "kind": "interface",
+      "members": [
+        "fun onFailure(call: Call, e: java.io.IOException)",
+        "fun onResponse(call: Call, response: Response)"
+      ],
+      "purpose": "Asynchronous OkHttp call callback."
+    }
+  ],
+  "functions": [
+    {
+      "name": "toResponseBody",
+      "kind": "Kotlin extension function",
+      "signature_patterns": [
+        "fun String.toResponseBody(contentType: MediaType? = null): ResponseBody",
+        "fun ByteArray.toResponseBody(contentType: MediaType? = null): ResponseBody",
+        "fun okio.ByteString.toResponseBody(contentType: MediaType? = null): ResponseBody"
+      ],
+      "purpose": "Create an in-memory ResponseBody. Preferred Kotlin fixture API for Retrofit Response.error(...).",
+      "common_import": "okhttp3.ResponseBody.Companion.toResponseBody"
+    },
+    {
+      "name": "toRequestBody",
+      "kind": "Kotlin extension function",
+      "signature_patterns": [
+        "fun String.toRequestBody(contentType: MediaType? = null): RequestBody",
+        "fun ByteArray.toRequestBody(contentType: MediaType? = null): RequestBody",
+        "fun okio.ByteString.toRequestBody(contentType: MediaType? = null): RequestBody"
+      ],
+      "purpose": "Create an in-memory RequestBody.",
+      "common_import": "okhttp3.RequestBody.Companion.toRequestBody"
+    },
+    {
+      "name": "toMediaType",
+      "kind": "Kotlin extension function",
+      "signature_patterns": [
+        "fun String.toMediaType(): MediaType"
+      ],
+      "purpose": "Parse a valid media type or throw IllegalArgumentException.",
+      "common_import": "okhttp3.MediaType.Companion.toMediaType"
+    },
+    {
+      "name": "toMediaTypeOrNull",
+      "kind": "Kotlin extension function",
+      "signature_patterns": [
+        "fun String.toMediaTypeOrNull(): MediaType?"
+      ],
+      "purpose": "Parse a media type or return null when invalid.",
+      "common_import": "okhttp3.MediaType.Companion.toMediaTypeOrNull"
+    },
+    {
+      "name": "toHttpUrl",
+      "kind": "Kotlin extension function",
+      "signature_patterns": [
+        "fun String.toHttpUrl(): HttpUrl"
+      ],
+      "purpose": "Parse a valid HTTP or HTTPS URL.",
+      "common_import": "okhttp3.HttpUrl.Companion.toHttpUrl"
+    },
+    {
+      "name": "toHttpUrlOrNull",
+      "kind": "Kotlin extension function",
+      "signature_patterns": [
+        "fun String.toHttpUrlOrNull(): HttpUrl?"
+      ],
+      "purpose": "Parse an HTTP or HTTPS URL or return null.",
+      "common_import": "okhttp3.HttpUrl.Companion.toHttpUrlOrNull"
+    }
+  ],
+  "rag_usage_hints": [
+    "For Retrofit Response.error(code, body) fixtures in Kotlin, prefer \"{}\".toResponseBody(\"application/json\".toMediaType()) when the exact error payload is not semantically important.",
+    "ResponseBody is one-shot for many read operations. Avoid asserting string(), bytes(), or byteString() multiple times on the same streaming body.",
+    "Use a real okhttp3.Response.Builder when Retrofit Response.success(body, rawResponse) or Response.error(body, rawResponse) requires a raw response.",
+    "A minimal raw response fixture requires Request, Protocol, HTTP status code, and message before build().",
+    "For interceptor tests, build real Request and Response objects and mock Interceptor.Chain only as needed.",
+    "Prefer Kotlin extension fixture APIs such as toResponseBody(), toRequestBody(), and toMediaType() in Kotlin tests.",
+    "Do not include MockWebServer APIs unless the project separately declares com.squareup.okhttp3:mockwebserver:4.12.0."
+  ],
+  "test_generation_capabilities": [
+    {
+      "capability": "okhttp_response_body_construction",
+      "status": "VERIFIED",
+      "apis": [
+        "String.toResponseBody(MediaType?)",
+        "ByteArray.toResponseBody(MediaType?)",
+        "ByteString.toResponseBody(MediaType?)",
+        "ResponseBody.create(MediaType?, String)",
+        "ResponseBody.create(MediaType?, ByteArray)",
+        "ResponseBody.create(MediaType?, ByteString)"
+      ]
+    },
+    {
+      "capability": "retrofit_error_body_fixture",
+      "status": "VERIFIED",
+      "apis": [
+        "String.toResponseBody(MediaType?)",
+        "String.toMediaType()"
+      ],
+      "example_shape": "\"{}\".toResponseBody(\"application/json\".toMediaType())"
+    },
+    {
+      "capability": "okhttp_raw_response_construction",
+      "status": "VERIFIED",
+      "apis": [
+        "Request.Builder().url(String).build()",
+        "Response.Builder().request(Request).protocol(Protocol).code(Int).message(String).build()"
+      ]
+    },
+    {
+      "capability": "okhttp_request_body_construction",
+      "status": "VERIFIED",
+      "apis": [
+        "String.toRequestBody(MediaType?)",
+        "ByteArray.toRequestBody(MediaType?)",
+        "ByteString.toRequestBody(MediaType?)"
+      ]
+    }
+  ],
+  "local_exhaustive_extractor": {
+    "requires": [
+      "JDK 17+",
+      "curl",
+      "jar",
+      "javap"
+    ],
+    "commands": [
+      "curl -L -o okhttp-4.12.0.jar https://repo1.maven.org/maven2/com/squareup/okhttp3/okhttp/4.12.0/okhttp-4.12.0.jar",
+      "jar tf okhttp-4.12.0.jar | grep '\\\\.class$' | sed 's#/#.#g;s#\\\\.class$##' > classes.txt",
+      "while read c; do javap -classpath okhttp-4.12.0.jar -public \"$c\"; done < classes.txt > okhttp-4.12.0-public-api.txt"
+    ],
+    "note": "For Kotlin APIs, javap exposes companion and *Kt JVM forms that may differ from Kotlin source syntax. Preserve Kotlin-facing signatures and common imports for LLM generation, and use bytecode extraction for exhaustive verification."
+  },
+  "note": "Curated API index for local LLM/RAG unit-test generation. It prioritizes test-facing OkHttp APIs needed for Retrofit error bodies, raw response fixtures, requests, responses, and interceptor tests."
+}

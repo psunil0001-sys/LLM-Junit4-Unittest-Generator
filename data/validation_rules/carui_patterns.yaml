@@ -1,0 +1,51 @@
+rules:
+  - when:
+      ctx:
+        source_uses_carui_toolbar_progress: true
+      test_any:
+        - ToolbarController
+        - CarUi.requireToolbar
+      test_not:
+        - '(?:whenever|`when`|when)\s*\([^)]*\.\s*(?:progressBar|getProgressBar\s*\(\s*\))\s*\)\s*\.thenReturn\s*\('
+        - 'doReturn\s*\([^)]*\)\s*\.\s*whenever\s*\([^)]*\)\s*\.\s*(?:progressBar|getProgressBar\s*\(\s*\))'
+    repair_prefix: invalid_carui_progress_fixture
+    repair_detail: invalid_carui_static_fixture
+
+  - when:
+      ctx:
+        source_uses_carui_toolbar_progress: true
+      test: 'verify\s*\(\s*[^)]*\.progressBar\b|verify\s*\(\s*[^)]*getProgressBar\s*\('
+    repair_prefix: invalid_carui_progress_verification
+    repair_detail: invalid_carui_static_fixture
+
+  - when:
+      ctx:
+        source_uses_carui_toolbar_progress: true
+      test: '\.thenReturn\(\s*mock\s*(?:<[^>]+>)?\s*\(\s*\)\s*\)'
+    repair_prefix: invalid_carui_progress_fixture
+    repair_detail: invalid_carui_static_fixture
+
+  - when:
+      test_contains: CarUi.requireToolbar
+      test: 'CarUi\.requireToolbar\s*\(\s*any(?:<[^>]+>)?\s*\('
+    repair: invalid_carui_static_fixture
+
+  - when:
+      source_contains: registerBackListener
+      test_contains: registerBackListener
+      test_any:
+        - '(?:argumentCaptor|ArgumentCaptor)\s*<\s*\(\s*\)\s*->\s*Boolean\s*>'
+        - '\b(?:val|var|lateinit\s+var)\s+[A-Za-z_][A-Za-z0-9_]*\s*:\s*\(\s*\)\s*->\s*Boolean'
+        - '\bslot\s*<\s*\(\s*\)\s*->\s*Boolean\s*>'
+    repair: invalid_carui_back_listener_fixture
+
+  - when:
+      source_contains: NavDeepLinkRequest
+      test_contains: TestNavHostController
+      test_not_contains: .setGraph(
+    repair: invalid_nav_deeplink_fixture
+
+  - when:
+      test_contains: MenuItem
+      test: '\b[A-Za-z_][A-Za-z0-9_]*\.onClick\??\.invoke\s*\('
+    repair: invalid_carui_menu_callback_api

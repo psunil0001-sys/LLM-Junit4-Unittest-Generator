@@ -1,0 +1,70 @@
+rules:
+  - when:
+      test: '\bResponse\.error(?:<[^>\n]+>)?\s*\(\s*[^,\n]+,\s*null\s*\)'
+    message: >-
+      invalid_retrofit_error_body: Response.error(code, null) can throw while Mockito stubbing is unfinished.
+      Use a concrete okhttp3.ResponseBody, for example ResponseBody.create(null, "error").
+
+  - when:
+      test_contains: import org.mockito.kotlin.mockStatic
+    message: >-
+      Static mocking uses import org.mockito.Mockito.mockStatic
+      and keep MockedStatic open until the exercised code completes.
+
+  - when:
+      test_contains: CarPropertyEventValue
+    message: >-
+      invalid_sdk_return_type_name: Prefer the verified FQN from VERIFIED SYMBOL CONTEXT / classpath
+      for SDK return values; do not invent sibling packages or alternate type names.
+
+  - when:
+      test: '\b(?:class|data\s+class)\s+Fake\w*CarProperty|FakeCarPropertyValue\b'
+    message: >-
+      Do not invent Fake* or other SDK-shaped alternate DTOs for production return values.
+      Use mock<RealType>() from VERIFIED SYMBOL CONTEXT and stub members production reads.
+
+  - when:
+      test_contains: getProperty
+      test: '\.thenReturn\s*\(\s*(?:object\s*\{[^}]*\bval\s+value\b|Fake\w*)'
+      flags: S
+    message: >-
+      Do not invent anonymous objects or Fake* stand-ins for SDK getProperty return values.
+      Use mock<RealType>() from VERIFIED SYMBOL CONTEXT and stub members production reads.
+
+  - when:
+      test: ShadowApplication\.getInstance\(\)\.nextStartedActivity\s*<
+    message: >-
+      Robolectric ShadowApplication nextStartedActivity is not a generic Kotlin function.
+      Use org.robolectric.shadows.ShadowApplication.getInstance().getNextStartedActivity()
+      with an ApplicationProvider Application context.
+
+  - when:
+      test: '\.thenReturn\([^)]*\.toMutableList\(\)\s*,\s*[^)]*\.toMutableList\(\)\)'
+    message: >-
+      Mockito-Kotlin multi-value thenReturn can cause Kotlin type inference failures for Android generic list APIs.
+      Use chained thenReturn(firstList).thenReturn(secondList) with typed queryIntentActivities matchers.
+
+  - when:
+      test: '(?:`when`|Mockito\.`when`|org\.mockito\.Mockito\.`when`)\s*\([^)]*\.logEvent\s*\('
+    message: >-
+      FirebaseAnalytics.logEvent is a Unit/void method.
+      Use org.mockito.Mockito.doThrow(exception).`when`(mockAnalytics).logEvent(eq("event_name"), any<Bundle>())
+      or doAnswer for selected exception branches; do not use Mockito.when/logEvent(...).thenThrow.
+
+  - when:
+      test: 'verify\s*\([^)]*\)\.logEvent\s*\(\s*"[^"]+"\s*,\s*any(?:<[^>]+>)?\s*\('
+    message: >-
+      Mockito verification with a matcher argument should use matchers for all parameters.
+      Use verify(mockAnalytics).logEvent(eq("event_name"), any<Bundle>()).
+
+  - when:
+      test_contains: MockedStatic<FirebaseAnalytics>
+      test: '`when`\s*\(\s*FirebaseAnalytics\.getInstance\s*\('
+    message: >-
+      When a MockedStatic<FirebaseAnalytics> is already open, restub FirebaseAnalytics.getInstance through that MockedStatic receiver.
+      Use firebaseAnalyticsStaticMock?.`when`<FirebaseAnalytics> { FirebaseAnalytics.getInstance(context) }?.thenThrow(...) or thenReturn(...).
+
+  - when:
+      test_contains: MockedStatic.mockStatic
+    message: >-
+      invalid_mockedstatic_factory: use org.mockito.Mockito.mockStatic(Type::class.java), not MockedStatic.mockStatic(...).

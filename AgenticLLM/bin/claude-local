@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Launch Claude Code CLI against the shared llama stack (via Anthropic proxy :8081).
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ENV_FILE="${ENV_FILE:-$([[ -f "$ROOT/.env" ]] && echo "$ROOT/.env" || echo "$ROOT/.env.example")}"
+
+if [[ -f "$ENV_FILE" ]]; then
+  # shellcheck disable=SC1090
+  set -a && source "$ENV_FILE" && set +a
+fi
+
+LLAMA_HOST="${LLAMA_HOST:-127.0.0.1}"
+LLAMA_PORT="${LLAMA_PORT:-8080}"
+ANTHROPIC_BASE_URL="${ANTHROPIC_BASE_URL:-http://127.0.0.1:8081}"
+ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-testgen-offline}"
+ANTHROPIC_AUTH_TOKEN="${ANTHROPIC_AUTH_TOKEN:-${ANTHROPIC_API_KEY}}"
+ANTHROPIC_MODEL="${ANTHROPIC_MODEL:-${MODEL_ALIAS:-qwen3.6-35b}}"
+
+export ANTHROPIC_BASE_URL
+export ANTHROPIC_API_KEY
+export ANTHROPIC_AUTH_TOKEN
+export ANTHROPIC_MODEL
+
+if ! curl -sf "http://${LLAMA_HOST}:${LLAMA_PORT}/health" >/dev/null 2>&1; then
+  echo "error: llama-server is not running at http://${LLAMA_HOST}:${LLAMA_PORT}" >&2
+  echo "Start it with: $ROOT/scripts/start-llama-server.sh" >&2
+  exit 1
+fi
+
+CLAUDE_BIN="${CLAUDE_BIN:-}"
+if [[ -z "$CLAUDE_BIN" ]]; then
+  if [[ -x "$HOME/.local/bin/claude" ]]; then
+    CLAUDE_BIN="$HOME/.local/bin/claude"
+  elif command -v claude >/dev/null 2>&1; then
+    CLAUDE_BIN="$(command -v claude)"
+  else
+    echo "error: claude CLI not found. Run: $ROOT/scripts/install-claude.sh" >&2
+    exit 1
+  fi
+fi
+
+echo "Claude Code -> ${ANTHROPIC_BASE_URL} (model: ${ANTHROPIC_MODEL}, llama: ${LLAMA_HOST}:${LLAMA_PORT})"
+exec "$CLAUDE_BIN" "$@"

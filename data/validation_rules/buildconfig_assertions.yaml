@@ -1,0 +1,11 @@
+rules:
+  - when:
+      test: '\bassert(?:True|False)?\s*\(\s*!?\s*BuildConfig\.[A-Z0-9_]+\s*(?:,|\))'
+    message: >-
+      invalid_buildconfig_assertion: BuildConfig flags are fixed by the active Gradle variant.
+      Do not hard-code the opposite branch or assert the flag itself as behavior.
+
+  - when:
+      test: 'assert(?:Equals|True)\s*\(\s*(BuildConfig\.[A-Z0-9_]+)\s*(?:==|,)\s*\1\s*\)'
+    message: >-
+      invalid_trivial_assertion: A BuildConfig value compared with itself is a tautology and cannot justify keeping the test.

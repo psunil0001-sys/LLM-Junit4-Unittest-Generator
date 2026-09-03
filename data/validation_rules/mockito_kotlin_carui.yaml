@@ -1,0 +1,7 @@
+rules:
+  - when:
+      ctx:
+        stack_has_mockito_kotlin: true
+      test: '\bsetIsIndeterminate\s*\('
+    repair_prefix: invalid_carui_progress_verification
+    repair: invalid_carui_progress_verification

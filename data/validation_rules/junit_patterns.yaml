@@ -1,0 +1,24 @@
+rules:
+  - when:
+      test: '@Test'
+      test_not_contains: import org.junit.Test
+    message: JUnit4 tests should import org.junit.Test.
+
+  - when:
+      test: '(?m)@Test(?:\([^)]*\))?\s*\n(?:[ \t]*@[^\n]+\n)*[ \t]*(?!fun\b)`[^`\n]+`\s*\('
+      flags: M
+    message: |-
+      JUnit4 test methods must include fun before the backtick name:
+      @Test
+      fun `short summary`() { ... }
+      or for suspend:
+      @Test
+      fun `short summary`() = runTest { ... }
+      Do not write `name`() { without fun.
+
+  - when:
+      test: '@RunWith\s*\(\s*RobolectricTestRunner\s*::\s*class\s*\)'
+      test_not: '@RunWith\s*\(\s*RobolectricTestRunner\s*::\s*class\s*\)\s*(?:\n\s*@[A-Za-z][^\n]*\s*)*\n\s*(?:abstract\s+)?class\s+\w*Test\b'
+      flags: S
+    repair_prefix: invalid_robolectric_runner_placement
+    repair: invalid_robolectric_runner_placement

@@ -1,3 +1,1 @@
-# Proprietary and confidential source code.
-# Developer: Sunilkumar Pathipati
-# Responsibility: Marks the Kotlin and Android test-generation implementation package.
+# Proprietary — Sunilkumar Pathipati. Marks the Kotlin and Android test-generation implementation package.

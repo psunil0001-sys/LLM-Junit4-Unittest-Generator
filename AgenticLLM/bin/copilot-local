@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Launch GitHub Copilot CLI against the local llama.cpp OpenAI-compatible server.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# ponytail: .env.example holds machine-local paths only, so it is a usable default
+ENV_FILE="${ENV_FILE:-$([[ -f "$ROOT/.env" ]] && echo "$ROOT/.env" || echo "$ROOT/.env.example")}"
+
+if [[ -f "$ENV_FILE" ]]; then
+  # shellcheck disable=SC1090
+  set -a && source "$ENV_FILE" && set +a
+fi
+
+LLAMA_HOST="${LLAMA_HOST:-127.0.0.1}"
+LLAMA_PORT="${LLAMA_PORT:-8080}"
+COPILOT_PROVIDER_BASE_URL="${COPILOT_PROVIDER_BASE_URL:-http://${LLAMA_HOST}:${LLAMA_PORT}/v1}"
+COPILOT_PROVIDER_TYPE="${COPILOT_PROVIDER_TYPE:-openai}"
+COPILOT_PROVIDER_API_KEY="${COPILOT_PROVIDER_API_KEY:-testgen-offline}"
+COPILOT_MODEL="${COPILOT_MODEL:-${MODEL_ALIAS:-qwen3.6-35b}}"
+COPILOT_OFFLINE="${COPILOT_OFFLINE:-true}"
+
+export COPILOT_PROVIDER_BASE_URL
+export COPILOT_PROVIDER_TYPE
+export COPILOT_PROVIDER_API_KEY
+export COPILOT_MODEL
+export COPILOT_OFFLINE
+
+# Optional token limits for large context models
+[[ -n "${COPILOT_PROVIDER_MAX_PROMPT_TOKENS:-}" ]] && export COPILOT_PROVIDER_MAX_PROMPT_TOKENS
+[[ -n "${COPILOT_PROVIDER_MAX_OUTPUT_TOKENS:-}" ]] && export COPILOT_PROVIDER_MAX_OUTPUT_TOKENS
+
+if ! curl -sf "http://${LLAMA_HOST}:${LLAMA_PORT}/health" >/dev/null 2>&1; then
+  echo "error: llama-server is not running at http://${LLAMA_HOST}:${LLAMA_PORT}" >&2
+  echo "Start it with: $ROOT/scripts/start-llama-server.sh" >&2
+  exit 1
+fi
+
+COPILOT_BIN="${COPILOT_BIN:-}"
+if [[ -z "$COPILOT_BIN" ]]; then
+  if [[ -x "$HOME/.local/bin/copilot" ]]; then
+    COPILOT_BIN="$HOME/.local/bin/copilot"
+  elif command -v copilot >/dev/null 2>&1; then
+    COPILOT_BIN="$(command -v copilot)"
+  else
+    echo "error: copilot CLI not found. Run: $ROOT/scripts/install-copilot.sh" >&2
+    exit 1
+  fi
+fi
+
+echo "Copilot CLI -> ${COPILOT_PROVIDER_BASE_URL} (model: ${COPILOT_MODEL}, offline: ${COPILOT_OFFLINE})"
+exec "$COPILOT_BIN" "$@"

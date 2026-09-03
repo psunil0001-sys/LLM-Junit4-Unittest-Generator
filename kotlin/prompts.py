@@ -1,305 +1,633 @@
-# Proprietary and confidential source code.
-# Developer: Sunilkumar Pathipati
-# Responsibility: Assembles prompt rule helpers and fixture playbooks.
-# Prompt helper functions and generated fixture playbook assembly.
+"""Prompt skeletons, decision tables, coder/fix prompt builders."""
 
-from UnitTest_gen.kotlin.prompt_constants import *
+from __future__ import annotations
 
-from UnitTest_gen.kotlin.guardrail_catalog import orchestration_gate_text
+import re
+from functools import lru_cache
+from pathlib import Path
 
-FIXTURE_PLAYBOOK_VERIFIED_UI_CLICK = (
-    "### PLAYBOOK: verified_ui_click\n"
-    "Prerequisites: Fragment attached with lifecycle owner; target view registered in onViewCreated.\n"
-    "Steps: performClick() on the view that received setOnClickListener; verify collaborator or navigation effect.\n"
-    + orchestration_gate_text("missing_coverage_trigger_click", "performClick on registered view after attach")
+PACKAGE_DIR = Path(__file__).resolve().parents[1]
+SKELETON_DIR = PACKAGE_DIR / "data" / "prompt_skeletons"
+_SECTION_RE = re.compile(r"^## ([A-Z_][A-Z0-9_]*)\s*$", re.MULTILINE)
+
+@lru_cache
+def load_skeleton(name: str) -> str:
+    return (SKELETON_DIR / name).read_text(encoding="utf-8")
+
+@lru_cache
+def load_catalog_sections(catalog: str = "prompt_catalog.md") -> dict[str, str]:
+    text = load_skeleton(catalog)
+    sections: dict[str, str] = {}
+    matches = list(_SECTION_RE.finditer(text))
+    for index, match in enumerate(matches):
+        start = match.end()
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        sections[match.group(1)] = text[start:end].strip()
+    return sections
+
+def catalog_section(name: str) -> str:
+    return load_catalog_sections()[name]
+
+from functools import lru_cache
+
+import yaml
+
+GENERATION_SYSTEM_PROMPT = catalog_section("GENERATION_SYSTEM_PROMPT")
+INSTRUMENTED_GENERATION_SYSTEM_PROMPT = catalog_section("INSTRUMENTED_GENERATION_SYSTEM_PROMPT")
+TEST_QUALITY_RULES = catalog_section("TEST_QUALITY_RULES")
+TEST_METHOD_NAMING_RULE = catalog_section("TEST_METHOD_NAMING_RULE")
+
+_CORE_PROSE = catalog_section("CORE_GENERATION_RULES")
+_KOTLIN_ANDROID_PROSE = catalog_section("KOTLIN_ANDROID_TEST_RULES")
+_INSTRUMENTED_KOTLIN_ANDROID_PROSE = catalog_section("INSTRUMENTED_KOTLIN_ANDROID_TEST_RULES")
+
+CORE_GENERATION_RULES = "\n\n".join(
+    part.strip()
+    for part in (_CORE_PROSE, TEST_METHOD_NAMING_RULE)
+    if part and part.strip()
 )
 
-FIXTURE_PLAYBOOK_VERIFIED_OBSERVER_AND_CLICK = (
-    "### PLAYBOOK: verified_observer_and_click\n"
-    "Prerequisites: delegated ViewModel reachable from Activity ViewModelStore.\n"
-    "Steps: postValue/setValue on observed state, idle main looper, then performClick on the registered view.\n"
-    + orchestration_gate_text(
-        "missing_coverage_trigger_observer_before_click",
-        "emit observed state, idle main looper, then performClick",
-    )
+KOTLIN_ANDROID_TEST_RULES = _KOTLIN_ANDROID_PROSE
+INSTRUMENTED_KOTLIN_ANDROID_TEST_RULES = _INSTRUMENTED_KOTLIN_ANDROID_PROSE
+
+# Plan-only stop contract (EXIT tables deleted — Python owns coder/fix verify loops).
+PLAN_EXIT_STRATEGY = """## PLAN EXIT
+One-pass classify DELTA → Write YAML+body to PLAN OUTPUT FILE → reply PLAN_SAVED → stop.
+Do not paste the plan into chat. Do not re-analyze, second-guess, or start another pass.
+Stuck or unsure: put remaining lines in not_testable with a concrete category, then Write + PLAN_SAVED.
+Empty testable with empty not_testable is invalid — every DELTA line must be classified once."""
+
+FORBIDDEN_LOCAL_JVM_TEST_SYMBOLS: tuple[str, ...] = (
+    "org.junit.jupiter",
+    "androidx.test.ext.junit.runners.AndroidJUnit4",
 )
 
-FIXTURE_PLAYBOOK_VERIFIED_OBSERVER_EMISSION = (
-    "### PLAYBOOK: verified_observer_emission\n"
-    "Steps: attach Fragment, post/set observed LiveData/StateFlow, idle looper, assert observer-driven effect.\n"
-    + orchestration_gate_text("missing_coverage_trigger_observer", "post/set observed state after attach")
-)
+_DEFAULT_REPAIR = "Repair the stable invalid pattern before running Gradle."
 
-FIXTURE_PLAYBOOK_VERIFIED_DIALOG_CALLBACK = (
-    "### PLAYBOOK: verified_dialog_callback\n"
-    "Steps: open dialog through public path; invoke real callback body; do not mockStatic AlertDialogHelper.\n"
-    + orchestration_gate_text("missing_coverage_trigger_dialog", "invoke real dialog callback")
-)
+@lru_cache
+def _validation_repair_intents() -> dict[str, str]:
+    data = yaml.safe_load(load_skeleton("validation_repair_intents.yaml"))
+    return data if isinstance(data, dict) else {}
 
-FIXTURE_PLAYBOOK_VERIFIED_MENU_CALLBACK = (
-    "### PLAYBOOK: verified_menu_callback\n"
-    "Steps: after attach, use argumentCaptor<List<MenuItem>>() with verify(toolbar).setMenuItems(captor.capture()), then call captor.firstValue.first().performClick(); assert visible dialog/navigation/state. Do not access a nonexistent MenuItem.onClick property or invent resource IDs.\n"
-    + orchestration_gate_text("missing_coverage_trigger_menu", "invoke menu callback after attach")
-)
+VALIDATION_REPAIR_INTENTS: dict[str, str] = _validation_repair_intents()
 
-FIXTURE_PLAYBOOK_VERIFIED_ACTIVITY_RESULT_CALLBACK = (
-    "### PLAYBOOK: verified_activity_result_callback\n"
-    "Steps: attach Fragment; invoke stored ActivityResult callback with required payload.\n"
-    + orchestration_gate_text("missing_coverage_trigger_activity_result", "invoke ActivityResult callback")
-)
+def validation_repair_intent(category: str) -> str:
+    return VALIDATION_REPAIR_INTENTS.get(category, _DEFAULT_REPAIR)
 
-FIXTURE_PLAYBOOK_CONTROLLED_EXCEPTION_PATH = (
-    "### PLAYBOOK: controlled_exception_path\n"
-    "Steps: arrange verified throwable; assert stable fallback behavior from public API.\n"
-    + orchestration_gate_text("missing_coverage_trigger_exception", "drive verified exception path")
-)
+from functools import lru_cache
+from pathlib import Path
+from typing import Any, Iterable
 
-FIXTURE_PLAYBOOK_CONTROLLED_COUNTDOWN_CALLBACK = (
-    "### PLAYBOOK: controlled_countdown_callback\n"
-    "Steps: capture countdown callback; advance time deterministically; invoke callback.\n"
-    + orchestration_gate_text("missing_coverage_trigger_countdown", "invoke countdown callback")
-)
+import yaml
 
-FIXTURE_PLAYBOOK_VERIFIED_COROUTINE_COMPLETION = (
-    "### PLAYBOOK: verified_coroutine_completion\n"
-    "Steps: runTest; advanceUntilIdle/runCurrent; assert stable state after scheduler drains.\n"
-    + orchestration_gate_text("missing_coverage_trigger_coroutine", "runTest plus advanceUntilIdle")
-)
+TABLES_DIR = PACKAGE_DIR / "data" / "prompt_skeletons" / "decision_tables"
+MANIFEST_NAME = "manifest.yaml"
 
-FIXTURE_PLAYBOOK_VERIFIED_STREAM_EMISSION = (
-    "### PLAYBOOK: verified_stream_emission\n"
-    "Steps: provide a finite flow/stream; invoke the public entry under runTest; advanceUntilIdle; assert emitted state.\n"
-    + orchestration_gate_text("missing_coverage_trigger_coroutine", "emit finite stream and drain scheduler")
-)
+def _escape_cell(value: object) -> str:
+    """Escape Markdown table cell content.
 
-FIXTURE_PLAYBOOK_VERIFIED_CALLBACK = (
-    "### PLAYBOOK: verified_callback\n"
-    "Steps: reach registration through the public entry; capture or trigger the concrete callback; assert its observable effect.\n"
-    + orchestration_gate_text("missing_coverage_trigger_click", "trigger registered callback through public path")
-)
+    Bare ``|`` breaks tables; leave doubled ``||`` as the word ``OR`` via
+    pre-normalization so logical-or in rules stays readable.
+    """
+    text = str(value or "").replace("\n", " ").strip()
+    text = text.replace("||", " OR ")
+    return text.replace("|", "/")
 
-FIXTURE_PLAYBOOK_ATTACHED_HILT_FRAGMENT = (
-    "### PLAYBOOK: attached_hilt_fragment\n"
-    "Steps: HiltAndroidRule.inject(); manifest-declared HiltTestActivity; commitNow/start/resume; reuse shared test Hilt bindings.\n"
-    + orchestration_gate_text("missing_coverage_observation_toolbar", "stub CarUi toolbar before attach when needed")
-)
+@lru_cache
+def load_manifest() -> dict[str, list[str]]:
+    raw = yaml.safe_load((TABLES_DIR / MANIFEST_NAME).read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, list[str]] = {}
+    for surface, ids in raw.items():
+        if isinstance(ids, list):
+            out[str(surface)] = [str(i) for i in ids]
+    return out
 
-FIXTURE_PLAYBOOK_ROBOLECTRIC_ACTIVITY = (
-    "### PLAYBOOK: robolectric_activity_lifecycle\n"
-    "Steps: use Robolectric.buildActivity(...); drive lifecycle through ActivityController; use the verified manifest theme; assert public UI/state; never call protected lifecycle methods directly."
-)
+@lru_cache
+def load_table(table_id: str) -> dict[str, Any]:
+    path = TABLES_DIR / f"{table_id}.yaml"
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError(f"decision table {table_id!r} must be a mapping")
+    return data
 
-FIXTURE_PLAYBOOK_ROBOLECTRIC_APPLICATION = (
-    "### PLAYBOOK: robolectric_application_lifecycle\n"
-    "Steps: obtain the verified Robolectric application for the active variant; invoke public lifecycle behavior only; do not mutate fixed BuildConfig branches."
-)
+def _tag_set(tags: Iterable[str] | None) -> set[str] | None:
+    if tags is None:
+        return None
+    return {str(t).strip() for t in tags if str(t).strip()}
 
-FIXTURE_PLAYBOOK_PUBLIC_METHOD = (
-    "### PLAYBOOK: public_method\n"
-    "Invoke the selected public method with verified fixtures; assert observable effect."
-)
-FIXTURE_PLAYBOOK_VIEWMODEL_PUBLIC_METHOD = (
-    "### PLAYBOOK: viewmodel_public_method\n"
-    "Construct ViewModel with mocks; call public method; assert state or collaborator interaction."
-)
-FIXTURE_PLAYBOOK_VIEWMODEL_SYNC_PUBLIC = (
-    "### PLAYBOOK: viewmodel_sync_public\n"
-    "Call synchronous public ViewModel API without coroutine final-state assertions."
-)
-FIXTURE_PLAYBOOK_BRANCH_PROBE = (
-    "### PLAYBOOK: branch_probe\n"
-    "Drive the exact branch label or guard condition from the Kover gap."
-)
+def _table_applies(table: dict[str, Any], tags: set[str]) -> bool:
+    required = table.get("when_any_tags") or []
+    if not required:
+        return True
+    wanted = {str(t).strip() for t in required if str(t).strip()}
+    return bool(wanted & tags)
 
-FIXTURE_PLAYBOOK_BY_ID = {
-    "verified_ui_click": FIXTURE_PLAYBOOK_VERIFIED_UI_CLICK,
-    "verified_observer_and_click": FIXTURE_PLAYBOOK_VERIFIED_OBSERVER_AND_CLICK,
-    "verified_observer_emission": FIXTURE_PLAYBOOK_VERIFIED_OBSERVER_EMISSION,
-    "verified_dialog_callback": FIXTURE_PLAYBOOK_VERIFIED_DIALOG_CALLBACK,
-    "verified_menu_callback": FIXTURE_PLAYBOOK_VERIFIED_MENU_CALLBACK,
-    "verified_activity_result_callback": FIXTURE_PLAYBOOK_VERIFIED_ACTIVITY_RESULT_CALLBACK,
-    "controlled_exception_path": FIXTURE_PLAYBOOK_CONTROLLED_EXCEPTION_PATH,
-    "controlled_countdown_callback": FIXTURE_PLAYBOOK_CONTROLLED_COUNTDOWN_CALLBACK,
-    "robolectric_delayed_handler": FIXTURE_PLAYBOOK_CONTROLLED_COUNTDOWN_CALLBACK,
-    "verified_coroutine_completion": FIXTURE_PLAYBOOK_VERIFIED_COROUTINE_COMPLETION,
-    "verified_stream_emission": FIXTURE_PLAYBOOK_VERIFIED_STREAM_EMISSION,
-    "verified_callback": FIXTURE_PLAYBOOK_VERIFIED_CALLBACK,
-    "attached_hilt_fragment": FIXTURE_PLAYBOOK_ATTACHED_HILT_FRAGMENT,
-    "robolectric_activity_lifecycle": FIXTURE_PLAYBOOK_ROBOLECTRIC_ACTIVITY,
-    "robolectric_application_lifecycle": FIXTURE_PLAYBOOK_ROBOLECTRIC_APPLICATION,
-    "public_method": FIXTURE_PLAYBOOK_PUBLIC_METHOD,
-    "viewmodel_sync_public": FIXTURE_PLAYBOOK_VIEWMODEL_SYNC_PUBLIC,
-    "viewmodel_public_method": FIXTURE_PLAYBOOK_VIEWMODEL_PUBLIC_METHOD,
-    "branch_probe": FIXTURE_PLAYBOOK_BRANCH_PROBE,
-}
+def render_table(table: dict[str, Any], *, tags: Iterable[str] | None = None) -> str:
+    """Render one table as Markdown. Empty string if filtered out.
 
-FRAGMENT_VIEWMODEL_PLAYBOOKS = """
---- FRAGMENT / DELEGATED VIEWMODEL ORCHESTRATION ---
-- Follow fixture playbooks for click, observer, dialog, and Hilt attach paths.
-- Do not @BindValue delegated ViewModels obtained with by viewModels()/activityViewModels().
-- Emit observed state only through mutable fields marked in VIEWMODEL AND DIALOG CONTEXT.
-"""
-
-INCREMENTAL_COVERAGE_RULES = """
---- FINAL INCREMENTAL COVERAGE RULES ---
-- Generate tests ONLY for selected targets from COVERAGE OPPORTUNITY PLAN.
-- Treat alternative opportunities as context only; do not generate tests for them in this attempt.
-- Do not generate tests for blocked opportunities unless they appear under "Selected blocked opportunities by explicit CLI override".
-- Private methods are coverage consequences reached through selected public APIs only.
-- For partial when/case branch gaps, follow the selected trigger recipe; if it says complementary/default input, do not repeat the printed case label.
-- For Fragment sources: no per-file graph mutation; reuse shared test Hilt bindings.
-- VIEWMODEL AND DIALOG CONTEXT mutability governs postValue/setValue versus public method driving.
-"""
-
-INCREMENTAL_EXECUTION_PLAYBOOKS = """
---- INCREMENTAL EXECUTION PLAYBOOKS ---
-- Replay fixture steps in order: attach, emit, click/callback, assert.
-- One compatible fixture group per supplemental round when multiple gaps share setup.
-"""
-
-
-def has_fixture_playbook(fixture_id: str) -> bool:
-    return bool(FIXTURE_PLAYBOOK_BY_ID.get(str(fixture_id or "").strip()))
-
-
-def _fixture_id_from_playbook_source(source_name: str) -> str:
-    prefix = "FIXTURE_PLAYBOOK_"
-    if not source_name.startswith(prefix):
+    ``tags=None`` means no filtering (catalog/coder). When ``tags`` is an
+    iterable (even empty), tables with ``when_any_tags`` require an overlap.
+    """
+    if tags is not None and not _table_applies(table, _tag_set(tags) or set()):
         return ""
-    suffix = source_name[len(prefix) :].lower()
-    return suffix if suffix in FIXTURE_PLAYBOOK_BY_ID else ""
 
-
-def source_requires_fixture_playbooks(source_categories, source_code: str = "") -> bool:
-    categories = {str(category) for category in (source_categories or ())}
-    if categories & FIXTURE_PLAYBOOK_UI_SOURCE_CATEGORIES:
-        return True
-    if "viewmodel" in categories or "hilt_viewmodel" in categories:
-        return True
-    if "coroutines_flow" in categories and "suspend fun" in (source_code or ""):
-        return True
-    return False
-
-
-def filter_retrieval_tags(categories, source_code, contract_tags=None):
-    filtered = set(categories or ()) | set(contract_tags or ())
-    if not source_requires_fixture_playbooks(filtered, source_code):
-        filtered -= ORCHESTRATION_ONLY_RAG_TAGS
-    return filtered
-
-
-def rag_retrieval_limits(
-    source_categories,
-    source_code: str = "",
-    phase: str = "generation",
-    *,
-    direct_orchestration_in_prompt: bool = False,
-) -> tuple[int, int]:
-    if source_requires_fixture_playbooks(source_categories, source_code):
-        if direct_orchestration_in_prompt:
-            if phase == "incremental":
-                return 18, 3500
-            if phase == "repair":
-                return 30, 6000
-            return 24, 4500
-        if phase == "incremental":
-            return 30, 5500
-        if phase == "repair":
-            return 30, 6000
-        return 42, 8000
-    if phase == "incremental":
-        return 18, 4200
-    if phase == "repair":
-        return 22, 5000
-    return 20, 5000
-
-
-def filter_retrieved_rule_documents(
-    documents,
-    source_categories,
-    source_code: str = "",
-    *,
-    fixture_ids: tuple[str, ...] = (),
-    direct_orchestration_in_prompt: bool = False,
-):
-    categories = {str(category) for category in (source_categories or ())}
-    orchestration = source_requires_fixture_playbooks(categories, source_code)
-    selected_fixtures = {str(fixture_id) for fixture_id in fixture_ids if fixture_id}
-    filtered = []
-    for document in documents or ():
-        source_name = getattr(document, "source_name", "")
-        title = (getattr(document, "title", "") or "").lower()
-        doc_tags = {str(tag) for tag in getattr(document, "tags", ())}
-
-        if direct_orchestration_in_prompt:
-            if source_name in ORCHESTRATION_RULE_SOURCES:
-                continue
-            if source_name.startswith("FIXTURE_PLAYBOOK_"):
-                continue
-        elif selected_fixtures and source_name.startswith("FIXTURE_PLAYBOOK_"):
-            playbook_fixture = _fixture_id_from_playbook_source(source_name)
-            if playbook_fixture in selected_fixtures:
-                continue
-
-        if source_name.startswith("FIXTURE_PLAYBOOK_") and not orchestration:
+    columns = [str(c) for c in (table.get("columns") or [])]
+    if not columns:
+        return ""
+    rows = table.get("rows") or []
+    title = str(table.get("title") or table.get("id") or "DECISION TABLE").strip()
+    header = "| " + " | ".join(columns) + " |"
+    sep = "| " + " | ".join("---" for _ in columns) + " |"
+    body_lines = [header, sep]
+    for row in rows:
+        if not isinstance(row, dict):
             continue
-        if source_name in ORCHESTRATION_RULE_SOURCES and not orchestration:
+        cells = [_escape_cell(row.get(col, "")) for col in columns]
+        body_lines.append("| " + " | ".join(cells) + " |")
+    return f"## {title}\n" + "\n".join(body_lines)
+
+def render_bundle(surface: str, *, tags: Iterable[str] | None = None) -> str:
+    """Join all tables listed for ``surface`` in manifest.yaml."""
+    ids = load_manifest().get(surface, [])
+    parts: list[str] = []
+    for table_id in ids:
+        try:
+            table = load_table(table_id)
+        except (OSError, ValueError, yaml.YAMLError):
             continue
+        rendered = render_table(table, tags=tags)
+        if rendered.strip():
+            parts.append(rendered.strip())
+    return "\n\n".join(parts)
 
-        if not orchestration:
-            if VIEWMODEL_EXCLUSIVE_RAG_TAGS & doc_tags and not (categories & VIEWMODEL_EXCLUSIVE_RAG_TAGS):
-                if title.startswith("viewmodels") or "viewmodel" in title:
-                    continue
-            if FRAGMENT_EXCLUSIVE_RAG_TAGS & doc_tags and not (categories & FRAGMENT_EXCLUSIVE_RAG_TAGS):
-                if title.startswith("fragment testing") or title.startswith("1. fragment"):
-                    continue
+from UnitTest_gen.core.config import get_config
 
-        filtered.append(document)
-    return tuple(filtered)
+_ZONE_SEP = "\n\n"
 
+def _join_zone(parts: list[str] | tuple[str, ...] | str) -> str:
+    if isinstance(parts, str):
+        return parts.strip()
+    return "\n".join(part for part in parts if str(part).strip()).strip()
 
-def contract_ids_covered_by_fixtures(fixture_ids) -> set[str]:
-    mapping = {
-        "attached_hilt_fragment": "attached_hilt_fragment",
-        "verified_ui_click": "plain_fragment",
-        "verified_observer_and_click": "fragment_uncontrolled_viewmodel_io",
-        "verified_observer_emission": "direct_constructor_viewmodel",
-        "verified_dialog_callback": "static_singleton_get_instance",
-        "verified_coroutine_completion": "hardcoded_dispatcher_viewmodel",
-        "branch_probe": "coverage_blocked_path",
-    }
-    return {mapping[fid] for fid in (fixture_ids or ()) if fid in mapping}
-
-
-def format_fixture_playbooks(
-    fixture_ids,
+def compose_user_prompt(
     *,
-    source_categories=None,
-    source_code: str = "",
-    is_android_fragment: bool = False,
-    include_lifecycle: bool = False,
+    static: list[str] | tuple[str, ...] | str = "",
+    cached: list[str] | tuple[str, ...] | str = "",
+    dynamic: list[str] | tuple[str, ...] | str = "",
 ) -> str:
-    selected = [str(fixture_id) for fixture_id in (fixture_ids or []) if fixture_id]
-    if not selected:
-        return ""
-    sections = []
-    for fixture_id in selected:
-        playbook = FIXTURE_PLAYBOOK_BY_ID.get(fixture_id, "")
-        if playbook:
-            sections.append(playbook.strip())
-    if include_lifecycle and is_android_fragment and "attached_hilt_fragment" not in selected:
-        sections.append(FIXTURE_PLAYBOOK_ATTACHED_HILT_FRAGMENT.strip())
-    return "\n\n".join(section for section in sections if section.strip())
+    """Join three ordered zones, dropping empty ones deterministically."""
+    zones = [_join_zone(static), _join_zone(cached), _join_zone(dynamic)]
+    return _ZONE_SEP.join(zone for zone in zones if zone)
 
+def cap_dynamic(
+    system: str,
+    static: list[str] | tuple[str, ...] | str,
+    cached: list[str] | tuple[str, ...] | str,
+    dynamic: list[str] | tuple[str, ...] | str,
+    budget: int | None = None,
+) -> PromptParts:
+    """Budget only the dynamic zone so the cacheable prefix stays byte-identical."""
+    budget = budget if budget is not None else get_config().prompt_context_char_budget
+    overhead = len("SYSTEM:\n\n\nUSER:\n")
+    static_text = _join_zone(static)
+    cached_text = _join_zone(cached)
+    dynamic_text = _join_zone(dynamic)
+    prefix = _ZONE_SEP.join(z for z in (static_text, cached_text) if z)
+    prefix_len = len(prefix) + (len(_ZONE_SEP) if prefix and dynamic_text else 0)
+    max_dynamic = max(0, budget - len(system) - overhead - prefix_len)
+    if len(dynamic_text) > max_dynamic:
+        dynamic_text = dynamic_text[:max_dynamic]
+    user = compose_user_prompt(static=static_text, cached=cached_text, dynamic=dynamic_text)
+    return PromptParts(system=system, user=user)
 
-def incremental_coverage_rules_for_source(categories, source_code: str = "") -> str:
-    if not source_requires_fixture_playbooks(categories, source_code):
+from dataclasses import dataclass
+from functools import lru_cache
+
+from UnitTest_gen.kotlin.codegen import TestFileState
+from UnitTest_gen.kotlin.codegen import is_skeleton_test
+
+@dataclass(frozen=True)
+class PromptParts:
+    """Stable system rules vs per-source user context for plan/coder agents."""
+
+    system: str
+    user: str
+
+def format_system_user_prompt(parts: PromptParts) -> str:
+    """Label SYSTEM/USER for test introspection (Claude uses --append-system-prompt)."""
+    return f"SYSTEM:\n{parts.system.strip()}\n\nUSER:\n{parts.user.strip()}"
+
+@lru_cache
+def _tool_block(name: str) -> str:
+    return load_skeleton(name).strip()
+
+def plan_tool_block() -> str:
+    return _tool_block("plan_tool_block.md")
+
+def coder_tool_block() -> str:
+    return _tool_block("coder_tool_block.md")
+
+def fix_tool_block() -> str:
+    return _tool_block("fix_tool_block.md")
+
+def plan_target_status_line(state: TestFileState, existing_code: str | None = None) -> str:
+    code = existing_code
+    if code is None and state.exists:
+        from UnitTest_gen.core import io as file_cache
+
+        code = file_cache.read_text(state.path, default="")
+    code = code or ""
+    if "@Test" in code:
         return (
-            "--- FINAL INCREMENTAL COVERAGE RULES ---\n"
-            "- Generate tests ONLY for selected targets from COVERAGE OPPORTUNITY PLAN.\n"
-            "- Treat alternative opportunities as context only; do not generate tests for them in this attempt.\n"
-            "- Do not generate tests for blocked opportunities unless explicitly selected by the CLI bucket override.\n"
-            "- Private methods are reached only through selected public APIs.\n"
-            "- For partial when/case branch gaps, follow the selected trigger recipe; complementary/default probes must not repeat the printed case label.\n"
+            "TARGET STATUS: existing file with @Test methods "
+            "(supplement DELTA only; do not wipe or rewrite)"
         )
-    return INCREMENTAL_COVERAGE_RULES.strip()
+    if state.has_content and is_skeleton_test(code):
+        return "TARGET STATUS: seeded skeleton (no @Test yet) — plan fixtures into this class"
+    if state.has_content:
+        return "TARGET STATUS: existing file with content (supplement DELTA only)"
+    if state.exists:
+        return "TARGET STATUS: existing file is empty — pipeline will seed a minimal skeleton before coder"
+    return "TARGET STATUS: pipeline will seed a minimal test skeleton at this *Test.kt path"
+
+def target_file_block(
+    *,
+    state: TestFileState,
+    abs_test: str,
+    abs_source: str,
+    existing_test_code: str = "",
+    test_layer=None,
+) -> list[str]:
+    """Coder/fix TARGET semantics: after seed, always edit (create cannot overwrite)."""
+    from UnitTest_gen.kotlin.layer import TestLayer
+
+    layer = test_layer if test_layer is not None else TestLayer.UNIT
+    edit_verb = "Edit"
+    sibling = (
+        "Sibling *JvmTest.kt / *RobolectricTest.kt / *InstrumentedTest.kt / other non-target "
+        "*Test.kt files are reference-only for host setup; do not search or copy them for scenarios."
+    )
+    if layer == TestLayer.INSTRUMENTED:
+        hard_limit = (
+            "Hard limit: Write/Edit only this TARGET under src/androidTest, build.gradle.kts, "
+            "build.gradle, or UnitTest_gen — never src/test, Robolectric patterns, or production sources."
+        )
+    else:
+        hard_limit = (
+            "Hard limit: Write/Edit only this TARGET under src/test, build.gradle.kts, "
+            "build.gradle, or UnitTest_gen — never src/main / production sources."
+        )
+    base = [f"SOURCE FILE (absolute): {abs_source}", sibling, hard_limit]
+    stem_rule = "Class name must match the file stem (e.g. FooTest.kt → class FooTest)."
+    code = (existing_test_code or "").strip()
+    if code and "@Test" in code:
+        return [
+            f"PIPELINE TARGET TEST FILE (absolute): {abs_test}",
+            *base,
+            "SUPPLEMENT ONLY: TARGET already has @Test methods — add DELTA cases; "
+            "do not wipe, empty, or replace the class body.",
+            f"Use {edit_verb} ONLY on {abs_test}.",
+        ]
+    if state.has_content and code and is_skeleton_test(existing_test_code):
+        return [
+            f"PIPELINE TARGET TEST FILE (absolute, seeded skeleton): {abs_test}",
+            *base,
+            "TARGET is a pipeline-seeded skeleton (no @Test yet). Fill the JUnit4 class body now.",
+            f"Use {edit_verb} (or Write if a full-file rewrite is clearer) ONLY on {abs_test}.",
+            stem_rule,
+        ]
+    if state.has_content:
+        return [
+            f"PIPELINE TARGET TEST FILE (absolute): {abs_test}",
+            *base,
+            "SUPPLEMENT ONLY: add tests for the DELTA plan items; preserve already-covered cases.",
+            f"Use {edit_verb} ONLY on {abs_test}.",
+        ]
+    if state.exists:
+        return [
+            f"PIPELINE TARGET TEST FILE (absolute, empty): {abs_test}",
+            *base,
+            "TARGET exists but is empty — write the full JUnit4 test class at this path.",
+            f"Use {edit_verb} (or Write if a full-file rewrite is clearer) ONLY on {abs_test}.",
+            stem_rule,
+        ]
+    return [
+        f"PIPELINE TARGET TEST FILE (not yet seeded): {abs_test}",
+        *base,
+        "The pipeline will seed a minimal skeleton class before the coder runs.",
+        f"After seeding, fill that skeleton via {edit_verb} on {abs_test} (do not create — path will already exist).",
+        stem_rule,
+    ]
+
+from pathlib import Path
+
+from UnitTest_gen.core import io as file_cache
+from UnitTest_gen.core.config import get_config
+from UnitTest_gen.core.io import compact_ranges
+from UnitTest_gen.kotlin.recipes import (
+    format_fix_recipe_context,
+    format_instrumented_fix_recipe_context,
+    format_instrumented_recipe_catalog,
+    format_recipe_catalog,
+)
+from UnitTest_gen.kotlin.layer import TestLayer
+from UnitTest_gen.kotlin.codegen import TestFileState, read_test_file_state
+from UnitTest_gen.kotlin.coverage import AGENT_DONE_INSTRUCTIONS
+from UnitTest_gen.kotlin.codegen import format_fix_error_context
+from UnitTest_gen.kotlin.imports import format_source_imports_block, resolve_source_imports
+from UnitTest_gen.kotlin.project import resolve_module_sdk_prompt_block_for_path, format_owning_module_anchor, format_instrumented_bootstrap_paths_block
+from UnitTest_gen.kotlin.codegen import RepairTicket, build_repair_tickets, format_tickets_for_prompt
+from UnitTest_gen.kotlin.codegen import format_slice_source_projection, format_target_excerpt
+from UnitTest_gen.kotlin.validate import mocking_lane_prompt_block, resolve_mocking_lane
+
+_CODER_EXECUTE = load_skeleton("coder_execute_block.md")
+_CODER_USER = load_skeleton("coder_user_prompt.md")
+_CODER_SYSTEM_TAIL = load_skeleton("coder_system_tail.md").strip()
+_FIX_INTRO = load_skeleton("fix_prompt_intro.md").strip()
+
+def _read_text(path: str, default: str = "") -> str:
+    return file_cache.read_text(path, default=default)
+
+def _pipeline_verify_lines(gradle_command: str, kover_command: str, *, fix: bool = False) -> list[str]:
+    verb = "re-runs" if fix else "runs"
+    return [
+        "PIPELINE VERIFY (informational — the pipeline runs these after you finish)",
+        f"The pipeline will run FAST_VERIFY: {gradle_command}",
+        f"KOVER_GATE (after green): {kover_command}",
+        "Do not run or script these commands — Python executes them after you finish.",
+        f"Make minimal edits, then stop. Pipeline {verb} FAST_VERIFY after you finish.",
+    ]
+
+def _imports_block(abs_source: str, source_code: str) -> str:
+    return format_source_imports_block(
+        resolve_source_imports(abs_source, source_code),
+        source_code=source_code,
+    ).strip()
+
+def _resolve_slice_views(
+    *,
+    abs_source: str,
+    abs_test: str,
+    source_code: str,
+    existing_test_code: str,
+    method_names,
+    delta_lines,
+    slice_source: str | None,
+    target_excerpt: str | None,
+):
+    if slice_source is None:
+        slice_source = format_slice_source_projection(
+            abs_source, source_code,
+            method_names=set(method_names or ()),
+            delta_lines=set(delta_lines or ()),
+        )
+    if target_excerpt is None:
+        target_excerpt = format_target_excerpt(existing_test_code, abs_test)
+    return slice_source, target_excerpt
+
+def build_agent_prompt(
+    *,
+    source_path: str,
+    test_path: str,
+    gradle_command: str,
+    kover_command: str,
+    kover_text: str,
+    static_analysis_path: str,
+    memory_context: str,
+    plan_text: str = "",
+    plan_path: str = "",
+    api_doc_text: str = "",
+    test_file_state: TestFileState | None = None,
+    sibling_test_context: str = "",
+    slice_tag: str = "",
+    source_code: str = "",
+    existing_test_code: str = "",
+    slice_source: str | None = None,
+    target_excerpt: str | None = None,
+    method_names: set[str] | frozenset[str] | tuple[str, ...] | list[str] = (),
+    delta_lines: set[int] | frozenset[int] | tuple[int, ...] | None = None,
+    source_categories: list[str] | tuple[str, ...] | frozenset[str] | set[str] = (),
+    pinned_recipe_id: str = "",
+    recipe_lane: str = "",
+    test_layer: TestLayer = TestLayer.UNIT,
+) -> PromptParts:
+    budget = get_config().prompt_context_char_budget
+    config = get_config()
+    abs_test = str(Path(test_path).resolve())
+    abs_source = str(Path(source_path).resolve())
+    state = test_file_state or read_test_file_state(test_path)
+    code_for_target = existing_test_code or (_read_text(test_path) if state.has_content else "")
+    lane = resolve_mocking_lane(
+        source_code=source_code,
+        existing_test_code=existing_test_code or code_for_target,
+        output_file_path=abs_test,
+    )
+    lane_block = mocking_lane_prompt_block(lane)
+    recipe_block = (
+        format_instrumented_recipe_catalog(
+            source_code,
+            categories=list(source_categories or ()),
+        )
+        if test_layer == TestLayer.INSTRUMENTED
+        else format_recipe_catalog(
+            source_code,
+            categories=list(source_categories or ()),
+            pinned_recipe_id=pinned_recipe_id,
+            recipe_lane=recipe_lane,
+        )
+    )
+    test_status = target_file_block(
+        state=state, abs_test=abs_test, abs_source=abs_source,
+        existing_test_code=code_for_target,
+        test_layer=test_layer,
+    )
+    source_read = "Read"
+    slice_source, target_excerpt = _resolve_slice_views(
+        abs_source=abs_source, abs_test=abs_test, source_code=source_code,
+        existing_test_code=code_for_target, method_names=method_names,
+        delta_lines=delta_lines, slice_source=slice_source, target_excerpt=target_excerpt,
+    )
+    execute_block = _CODER_EXECUTE.format(source_read=source_read).strip().splitlines()
+    test_kind = "instrumented test" if test_layer == TestLayer.INSTRUMENTED else "unit test"
+    generation_role = (
+        INSTRUMENTED_GENERATION_SYSTEM_PROMPT.strip()
+        if test_layer == TestLayer.INSTRUMENTED
+        else GENERATION_SYSTEM_PROMPT.strip()
+    )
+    android_rules = (
+        INSTRUMENTED_KOTLIN_ANDROID_TEST_RULES.strip()
+        if test_layer == TestLayer.INSTRUMENTED
+        else KOTLIN_ANDROID_TEST_RULES.strip()
+    )
+    # EXIT/catalog decision tables moved to Python loops (RepairTicket + FAST_VERIFY).
+    system = "\n".join([
+        generation_role, "",
+        coder_tool_block(), *execute_block, _CODER_SYSTEM_TAIL, "",
+        CORE_GENERATION_RULES.strip(), "", TEST_QUALITY_RULES.strip(), "",
+        android_rules, "", AGENT_DONE_INSTRUCTIONS.strip(),
+    ])
+    static = _CODER_USER.format(
+        abs_test=abs_test,
+        abs_source=abs_source,
+        test_kind=test_kind,
+        recipe_block="",
+        plan_file_line=(
+            f"Plan file (authoritative): {plan_path}" if plan_path else "Plan file: (inline blueprint below)"
+        ),
+        slice_line=(
+            f"THIS SLICE tag={slice_tag}: implement only the plan items for this tag. "
+            "Later slices run in separate passes."
+            if slice_tag else "Cover only the DELTA plan / Kover lines below."
+        ),
+        source_read=source_read,
+        slice_source="",
+        target_excerpt="",
+    ).strip()
+    # Drop empty placeholders left by the template zones we fill below.
+    static = "\n".join(line for line in static.splitlines() if line.strip())
+    cached_parts = [
+        slice_source,
+        target_excerpt,
+        recipe_block,
+        _imports_block(abs_source, source_code),
+        sibling_test_context.strip(),
+        api_doc_text.strip(),
+        resolve_module_sdk_prompt_block_for_path(abs_source),
+    ]
+    dynamic_parts = [
+        format_owning_module_anchor(abs_source),
+        (
+            format_instrumented_bootstrap_paths_block(abs_source)
+            if test_layer == TestLayer.INSTRUMENTED
+            else ""
+        ),
+        f"TEST LAYER: {test_layer.value} — use ONLY {test_layer.value} recipes and harness.",
+        (
+            "Forbidden: RobolectricTestRunner, src/test-only patterns."
+            if test_layer == TestLayer.INSTRUMENTED
+            else "Forbidden: connectedAndroidTest-only patterns when layer is unit."
+        ),
+        "\n".join(test_status),
+        lane_block,
+        "\n".join(_pipeline_verify_lines(gradle_command, kover_command)),
+        plan_text.strip() or "CODER PLAN: (none provided)",
+        "KOVER VERIFICATION CONTEXT (do not replan from this)",
+        kover_text,
+        f"STATIC ANALYSIS JSON: {static_analysis_path or 'none'}",
+    ]
+    if memory_context.strip():
+        dynamic_parts.extend(["PRIOR LESSONS / ATTEMPTS", memory_context.strip()])
+    del config
+    return cap_dynamic(system, static, cached_parts, dynamic_parts, budget)
+
+def build_fix_prompt(
+    *,
+    source_path: str,
+    test_path: str,
+    gradle_command: str,
+    kover_command: str,
+    gradle_output: str,
+    validation_issues: list[str] | None = None,
+    tickets: list[RepairTicket] | None = None,
+    sibling_test_context: str = "",
+    slice_tag: str = "",
+    project_root: str = "",
+    api_doc_text: str = "",
+    source_code: str = "",
+    existing_test_code: str = "",
+    slice_source: str | None = None,
+    target_excerpt: str | None = None,
+    method_names: set[str] | frozenset[str] | tuple[str, ...] | list[str] = (),
+    delta_lines: set[int] | frozenset[int] | tuple[int, ...] | None = None,
+    plan_path: str = "",
+    pinned_recipe_id: str = "",
+    recipe_lane: str = "",
+    source_categories: list[str] | tuple[str, ...] | frozenset[str] | set[str] = (),
+    test_layer: TestLayer = TestLayer.UNIT,
+) -> PromptParts:
+    """Slim ticket-driven fix prompt — no CORE_GENERATION_RULES / EXIT catalog re-injection."""
+    abs_test = str(Path(test_path).resolve())
+    abs_source = str(Path(source_path).resolve())
+    lane = resolve_mocking_lane(
+        source_code=source_code, existing_test_code=existing_test_code, output_file_path=abs_test,
+    )
+    lane_block = mocking_lane_prompt_block(lane)
+    if tickets is None:
+        tickets = build_repair_tickets(
+            validation_issues=validation_issues or [],
+            gradle_output=gradle_output or "",
+        )
+    ticket_block = format_tickets_for_prompt(tickets)
+    # Keep a short gradle snippet only when tickets already summarize failures.
+    failure_block = ""
+    if any(t.source == "gradle" for t in tickets):
+        failure_block = format_fix_error_context(
+            gradle_output or "", project_root=project_root, test_path=abs_test,
+        )
+    edit_verb = "Edit"
+    slice_source, target_excerpt = _resolve_slice_views(
+        abs_source=abs_source, abs_test=abs_test, source_code=source_code,
+        existing_test_code=existing_test_code, method_names=method_names,
+        delta_lines=delta_lines, slice_source=slice_source, target_excerpt=target_excerpt,
+    )
+    lines_text = compact_ranges(sorted(int(n) for n in (delta_lines or ())))
+    fix_recipe_block = (
+        format_instrumented_fix_recipe_context(
+            source_code,
+            categories=list(source_categories or ()),
+            api_doc_text=api_doc_text,
+        )
+        if test_layer == TestLayer.INSTRUMENTED
+        else format_fix_recipe_context(
+            source_code,
+            project_root=project_root,
+            categories=list(source_categories or ()),
+            pinned_recipe_id=pinned_recipe_id,
+            recipe_lane=recipe_lane,
+            api_doc_text=api_doc_text,
+            gradle_output=gradle_output or "",
+        )
+    )
+    system = "\n\n".join([
+        _FIX_INTRO,
+        fix_tool_block(),
+        "Fix only the REPAIR TICKETS below. Pipeline re-runs FAST_VERIFY after you stop.",
+        AGENT_DONE_INSTRUCTIONS.strip(),
+    ])
+    static = "\n".join([
+        f"Plan file (authoritative): {plan_path}" if plan_path else "Stay within the original blueprint scope for this slice.",
+        f"SOURCE FILE (absolute): {abs_source}",
+        f"PIPELINE TARGET TEST FILE (absolute): {abs_test}",
+        f"Use {edit_verb} ONLY on {abs_test}. "
+        "Sibling *JvmTest.kt / *RobolectricTest.kt / other non-target *Test.kt files are reference-only.",
+    ])
+    # Ticket-only: TARGET excerpt + this-slice lines; skip recipe/api re-paste.
+    cached = [
+        target_excerpt,
+        slice_source,
+        fix_recipe_block,
+        sibling_test_context.strip() if sibling_test_context.strip() else "",
+    ]
+    dynamic = [
+        format_owning_module_anchor(abs_source, project_root=project_root),
+        (
+            format_instrumented_bootstrap_paths_block(abs_source, project_root=project_root)
+            if test_layer == TestLayer.INSTRUMENTED
+            else ""
+        ),
+        f"TEST LAYER: {test_layer.value} — use ONLY {test_layer.value} recipes and harness.",
+        lane_block,
+        f"THIS SLICE tag={slice_tag} lines={lines_text}: fix only this slice."
+        if slice_tag else f"Fix only listed tickets (lines={lines_text or 'n/a'}).",
+        "\n".join(_pipeline_verify_lines(gradle_command, kover_command, fix=True)),
+        "REPAIR TICKETS",
+        ticket_block,
+    ]
+    if failure_block.strip():
+        dynamic.extend(["GRADLE / JUNIT FAILURE DETAIL", failure_block])
+    return PromptParts(
+        system=system,
+        user=compose_user_prompt(static=static, cached=cached, dynamic=dynamic),
+    )
