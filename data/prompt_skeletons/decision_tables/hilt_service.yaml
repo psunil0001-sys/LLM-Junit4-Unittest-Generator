@@ -1,0 +1,15 @@
+id: hilt_service
+title: "HILT @AndroidEntryPoint SERVICE"
+columns: [when, do, do_not]
+when_any_tags:
+  - hilt_service
+rows:
+  - when: "onStartCommand / onCreate / injected Service logic"
+    do: "@HiltAndroidTest + HiltAndroidRule + HiltTestApplication; @BindValue every @Inject dep; hiltRule.inject() in @Before; try context.startService(Intent(context, Cut::class.java)) first"
+    do_not: "start without hiltRule.inject(); use buildService as the only plan without trying startService"
+  - when: "startService returns ComponentName but inject/onStartCommand does not run (Robolectric library tests)"
+    do: "Robolectric.buildService(Cut::class.java, intent).create().startCommand(0, 0) under @Config(application = HiltTestApplication::class)"
+    do_not: "Skip Hilt harness; assign @Inject fields after start"
+  - when: "Service launches suspend work on injected CoroutineScope"
+    do: "runTest; bind a test-dispatcher scope; assert after work completes"
+    do_not: "Sleep / wait for real Dispatchers.IO"

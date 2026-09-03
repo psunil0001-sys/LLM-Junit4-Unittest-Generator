@@ -1,0 +1,21 @@
+id: carui
+title: "CARUI TOOLBAR HOST"
+columns: [when, do, do_not]
+when_any_tags:
+  - carui_toolbar
+  - carui_progress
+  - carui_back_listener
+  - car
+rows:
+  - when: "CarUi.requireToolbar / getToolbar"
+    do: "mockkStatic(CarUi::class) or mockStatic(CarUi::class.java); stub requireToolbar(exact host Activity) to a typed ToolbarController mock"
+    do_not: "Invent CarUi APIs; skip the static stub; guess ToolbarController members"
+  - when: "setMenuItems coverage"
+    do: "Capture List<MenuItem>; call MenuItem.performClick() on the target item"
+    do_not: "Call MenuItem.onClick; invent listener shapes"
+  - when: "registerBackListener / registerOnBackListener"
+    do: "Capture Supplier<Boolean> or OnBackListener; invoke the verified callback"
+    do_not: "Stub as Kotlin () -> Boolean unless that type is on the verified API"
+  - when: "getProgressBar / ProgressBarController"
+    do: "Stub getProgressBar() to a ProgressBarController mock; verify setIndeterminate(boolean)"
+    do_not: "setIsIndeterminate"

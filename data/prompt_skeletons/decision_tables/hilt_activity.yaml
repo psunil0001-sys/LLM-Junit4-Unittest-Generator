@@ -1,0 +1,19 @@
+id: hilt_activity
+title: "HILT @AndroidEntryPoint ACTIVITY"
+columns: [when, do, do_not]
+when_any_tags:
+  - hilt_android_activity
+  - hilt_android
+rows:
+  - when: "Full onCreate / Robolectric .create() coverage"
+    do: "Plan complete Hilt harness in approach, fixture_hint, Section 5: @HiltAndroidTest + HiltAndroidRule + @Config(application = HiltTestApplication::class) + @BindValue/@TestInstallIn for @Inject deps BEFORE create()"
+    do_not: ".create().get() then activity.<injectField> = mock; claim Hilt N/A when planning .create()"
+  - when: "TARGET already uses .get() + field assign without create()"
+    do: "Prefer that host for non-onCreate lines"
+    do_not: "Force create() for lines that do not need onCreate"
+  - when: "onCreate body lines; module cannot host Hilt tests"
+    do: "not_testable with harness-unavailable reason"
+    do_not: "Invent incomplete Hilt stubs"
+  - when: "Act step uses Robolectric .create() on @AndroidEntryPoint Activity"
+    do: "Earlier approach steps MUST include full Hilt harness + @BindValue/@TestInstallIn BEFORE create()"
+    do_not: "One-sentence approach that skips harness order"

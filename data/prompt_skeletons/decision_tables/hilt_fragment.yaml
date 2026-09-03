@@ -1,0 +1,19 @@
+id: hilt_fragment
+title: "HILT @AndroidEntryPoint FRAGMENT"
+columns: [when, do, do_not]
+when_any_tags:
+  - hilt_fragment
+  - closed_hilt_graph
+rows:
+  - when: "Attach / lifecycle / onViewCreated / findNavController coverage"
+    do: "@HiltAndroidTest + HiltAndroidRule + @Config(application = HiltTestApplication::class); hiltRule.inject() in @Before; attach Cut via module @AndroidEntryPoint Activity + commitNow"
+    do_not: "launchFragmentInContainer; invent a local HiltTestActivity; attach without BindValue/TestInstallIn for @Inject deps"
+  - when: "by viewModels() / activityViewModels()"
+    do: "Attach under the real Hilt graph; drive public VM methods after commitNow"
+    do_not: "@BindValue of the ViewModel type unless bindvalue_viewmodel_fallback"
+  - when: "CarUi.requireToolbar in Fragment"
+    do: "Follow carui_toolbar_host companion recipe after Hilt attach (mockkStatic/mockStatic requireToolbar)"
+    do_not: "Call onResume on a detached Fragment to reach toolbar lines"
+  - when: "Module cannot host Hilt Robolectric Fragment tests"
+    do: "not_testable with harness-unavailable reason, or public-contract tests that never attach"
+    do_not: "Incomplete Hilt stubs or direct onCreateView after attach"

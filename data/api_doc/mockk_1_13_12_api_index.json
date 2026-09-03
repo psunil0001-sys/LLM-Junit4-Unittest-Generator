@@ -1,0 +1,200 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-07-21T05:30:00Z",
+  "name": "mockk",
+  "coordinates": {
+    "group_id": "io.mockk",
+    "artifact_id": "mockk",
+    "version": "1.13.12",
+    "gradle": "testImplementation(\"io.mockk:mockk:1.13.12\")"
+  },
+  "description": "Mocking library for Kotlin. Use only for tag-gated Kotlin object seams; do not mix with Mockito in the same test file.",
+  "source_confidence": "high for coordinates and primary public APIs used by UnitTest_gen MockK lane.",
+  "official_references": [
+    "https://repo1.maven.org/maven2/io/mockk/mockk/1.13.12/",
+    "https://mockk.io/",
+    "https://github.com/mockk/mockk"
+  ],
+  "packages": [
+    {
+      "name": "io.mockk",
+      "purpose": "Kotlin-first mocking DSL for classes, objects, and statics."
+    }
+  ],
+  "classes": [],
+  "functions": [
+    {
+      "name": "mockkObject",
+      "kind": "function",
+      "signature_patterns": [
+        "fun mockkObject(vararg objects: Any, recordPrivateCalls: Boolean = false)"
+      ],
+      "purpose": "Replace Kotlin object singletons with mocks for the current test scope.",
+      "common_import": "io.mockk.mockkObject"
+    },
+    {
+      "name": "unmockkObject",
+      "kind": "function",
+      "signature_patterns": [
+        "fun unmockkObject(vararg objects: Any)"
+      ],
+      "purpose": "Restore previously mocked Kotlin objects.",
+      "common_import": "io.mockk.unmockkObject"
+    },
+    {
+      "name": "mockkConstructor",
+      "kind": "function",
+      "signature_patterns": [
+        "fun mockkConstructor(vararg classes: KClass<*>, recordPrivateCalls: Boolean = false)"
+      ],
+      "purpose": "Intercept Java/Kotlin constructors when SOURCE does Type(args). Use with anyConstructed; not a substitute for mockkStatic.",
+      "common_import": "io.mockk.mockkConstructor"
+    },
+    {
+      "name": "unmockkConstructor",
+      "kind": "function",
+      "signature_patterns": [
+        "fun unmockkConstructor(vararg classes: KClass<*>)"
+      ],
+      "purpose": "Clear constructor mocks opened with mockkConstructor.",
+      "common_import": "io.mockk.unmockkConstructor"
+    },
+    {
+      "name": "anyConstructed",
+      "kind": "function",
+      "signature_patterns": [
+        "inline fun <reified T : Any> anyConstructed(): T"
+      ],
+      "purpose": "Stub or verify members on instances created after mockkConstructor(T::class).",
+      "common_import": "io.mockk.anyConstructed"
+    },
+    {
+      "name": "mockkStatic",
+      "kind": "function",
+      "signature_patterns": [
+        "fun mockkStatic(vararg classes: KClass<*>)",
+        "fun mockkStatic(vararg functions: String)"
+      ],
+      "purpose": "Mock static/Java @JvmStatic or top-level functions when the MockK-only lane also needs static seams (for example CarUi).",
+      "common_import": "io.mockk.mockkStatic"
+    },
+    {
+      "name": "unmockkStatic",
+      "kind": "function",
+      "signature_patterns": [
+        "fun unmockkStatic(vararg classes: KClass<*>)",
+        "fun unmockkStatic(vararg functions: String)"
+      ],
+      "purpose": "Clear static mocks opened with mockkStatic.",
+      "common_import": "io.mockk.unmockkStatic"
+    },
+    {
+      "name": "unmockkAll",
+      "kind": "function",
+      "signature_patterns": [
+        "fun unmockkAll()"
+      ],
+      "purpose": "Clear all MockK object/static/constructor mocks; prefer in @After teardown.",
+      "common_import": "io.mockk.unmockkAll"
+    },
+    {
+      "name": "mockk",
+      "kind": "inline function",
+      "signature_patterns": [
+        "inline fun <reified T : Any> mockk(name: String? = null, relaxed: Boolean = false, ...): T"
+      ],
+      "purpose": "Create a MockK mock instance for constructor/collaborator dependencies in the MockK-only lane.",
+      "common_import": "io.mockk.mockk"
+    },
+    {
+      "name": "every",
+      "kind": "function",
+      "signature_patterns": [
+        "fun <T> every(stubBlock: MockKMatcherScope.() -> T): MockKStubScope<T, T>"
+      ],
+      "purpose": "Stub a call on a mock or mocked object.",
+      "common_import": "io.mockk.every"
+    },
+    {
+      "name": "coEvery",
+      "kind": "function",
+      "signature_patterns": [
+        "fun <T> coEvery(stubBlock: suspend MockKMatcherScope.() -> T): MockKStubScope<T, T>"
+      ],
+      "purpose": "Stub a suspend function call.",
+      "common_import": "io.mockk.coEvery"
+    },
+    {
+      "name": "verify",
+      "kind": "function",
+      "signature_patterns": [
+        "fun verify(ordering: Ordering = Ordering.UNORDERED, ..., verifyBlock: MockKVerificationScope.() -> Unit)"
+      ],
+      "purpose": "Verify calls on mocks or mocked objects.",
+      "common_import": "io.mockk.verify"
+    },
+    {
+      "name": "coVerify",
+      "kind": "function",
+      "signature_patterns": [
+        "fun coVerify(ordering: Ordering = Ordering.UNORDERED, ..., verifyBlock: suspend MockKVerificationScope.() -> Unit)"
+      ],
+      "purpose": "Verify suspend function calls.",
+      "common_import": "io.mockk.coVerify"
+    },
+    {
+      "name": "just",
+      "kind": "property/helper",
+      "signature_patterns": [
+        "infix fun MockKStubScope<Unit, *>.just(runs: Runs)"
+      ],
+      "purpose": "Complete a Unit-returning stub with just Runs.",
+      "common_import": "io.mockk.just"
+    },
+    {
+      "name": "Runs",
+      "kind": "object",
+      "signature_patterns": [
+        "object Runs"
+      ],
+      "purpose": "Marker used with just Runs for void/Unit stubs.",
+      "common_import": "io.mockk.Runs"
+    },
+    {
+      "name": "any",
+      "kind": "function",
+      "signature_patterns": [
+        "inline fun <reified T : Any> MockKMatcherScope.any(): T"
+      ],
+      "purpose": "Typed argument matcher for MockK stubs and verifies.",
+      "common_import": "io.mockk.any"
+    },
+    {
+      "name": "slot",
+      "kind": "function",
+      "signature_patterns": [
+        "inline fun <reified T : Any> slot(): CapturingSlot<T>"
+      ],
+      "purpose": "Capture arguments with slot/capture in MockK verifies.",
+      "common_import": "io.mockk.slot"
+    },
+    {
+      "name": "capture",
+      "kind": "function",
+      "signature_patterns": [
+        "inline fun <reified T : Any> MockKMatcherScope.capture(slot: CapturingSlot<T>): T"
+      ],
+      "purpose": "Capture a matching argument into a CapturingSlot.",
+      "common_import": "io.mockk.capture"
+    },
+    {
+      "name": "clearMocks",
+      "kind": "function",
+      "signature_patterns": [
+        "fun clearMocks(firstMock: Any, vararg mocks: Any, answers: Boolean = true, recordedCalls: Boolean = true, childMocks: Boolean = true, verificationMarks: Boolean = true, exclusionRules: Boolean = true)"
+      ],
+      "purpose": "Clear recorded calls/answers between tests without unmocking objects.",
+      "common_import": "io.mockk.clearMocks"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+id: permissions
+title: "PERMISSIONS / ACTIVITY RESULT"
+columns: [when, do, do_not]
+when_any_tags:
+  - android_activity
+  - android_fragment
+  - permissions
+rows:
+  - when: "checkSelfPermission / requestPermissions / grant-deny branch"
+    do: "Shadows.shadowOf(context).grantPermissions(...) or denyPermissions(...); or mock checkSelfPermission on a test Context"
+    do_not: "Shadows.grantPermissions static (does not exist); system permission dialog"
+  - when: "registerForActivityResult / ActivityResult launcher"
+    do: "Register before STARTED; deliver ActivityResult(code, Intent) through the launcher/registry"
+    do_not: "argumentCaptor-capture the outer onResult and invoke it"

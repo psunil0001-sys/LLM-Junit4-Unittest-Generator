@@ -1,0 +1,515 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-07-08T11:31:52Z",
+  "name": "mockito-kotlin",
+  "coordinates": {
+    "group_id": "org.mockito.kotlin",
+    "artifact_id": "mockito-kotlin",
+    "version": "5.2.1",
+    "gradle": "testImplementation(\"org.mockito.kotlin:mockito-kotlin:5.2.1\")"
+  },
+  "description": "Using Mockito with Kotlin.",
+  "source_confidence": "high for coordinates and primary public APIs; bytecode-exhaustive regeneration recommended using included recipe.",
+  "official_references": [
+    "https://repo1.maven.org/maven2/org/mockito/kotlin/mockito-kotlin/5.2.1/",
+    "https://github.com/mockito/mockito-kotlin",
+    "https://javadoc.io/doc/org.mockito.kotlin/mockito-kotlin/5.2.1/"
+  ],
+  "packages": [
+    {
+      "name": "org.mockito.kotlin",
+      "purpose": "Kotlin helper DSL and extensions over Mockito core."
+    }
+  ],
+  "classes": [
+    {
+      "qualified_name": "org.mockito.kotlin.KArgumentCaptor",
+      "kind": "class",
+      "members": [
+        "val firstValue: T",
+        "val secondValue: T",
+        "val thirdValue: T",
+        "val lastValue: T",
+        "val allValues: List<T>",
+        "fun capture(): T",
+        "fun captureNullable(): T?"
+      ],
+      "purpose": "Kotlin wrapper around Mockito ArgumentCaptor."
+    },
+    {
+      "qualified_name": "org.mockito.kotlin.KStubbing",
+      "kind": "class",
+      "members": [
+        "fun <R> on(methodCall: T.() -> R): OngoingStubbing<R>",
+        "fun <R : Any> onGeneric(methodCall: T.() -> R): OngoingStubbing<R>",
+        "suspend/bridge helpers for coroutine stubbing where available"
+      ],
+      "purpose": "DSL receiver used by mock { on { ... } doReturn ... }."
+    },
+    {
+      "qualified_name": "org.mockito.kotlin.MockitoKotlinException",
+      "kind": "class",
+      "members": [
+        "constructor(message: String)",
+        "constructor(message: String, cause: Throwable)"
+      ],
+      "purpose": "Library exception type for Kotlin DSL misuse."
+    }
+  ],
+  "functions": [
+    {
+      "name": "mock",
+      "kind": "inline function",
+      "signature_patterns": [
+        "inline fun <reified T : Any> mock(...) : T"
+      ],
+      "purpose": "Create a Mockito mock with Kotlin-friendly defaults/settings.",
+      "common_import": "org.mockito.kotlin.mock"
+    },
+    {
+      "name": "spy",
+      "kind": "inline function",
+      "signature_patterns": [
+        "inline fun <reified T : Any> spy() : T",
+        "fun <T> spy(value: T): T"
+      ],
+      "purpose": "Create a spy/partial mock.",
+      "common_import": "org.mockito.kotlin.spy"
+    },
+    {
+      "name": "whenever",
+      "kind": "function",
+      "signature_patterns": [
+        "fun <T> whenever(methodCall: T): OngoingStubbing<T>"
+      ],
+      "purpose": "Kotlin-friendly alias for Mockito.when.",
+      "common_import": "org.mockito.kotlin.whenever"
+    },
+    {
+      "name": "verify",
+      "kind": "function",
+      "signature_patterns": [
+        "fun <T> verify(mock: T): T",
+        "fun <T> verify(mock: T, mode: VerificationMode): T"
+      ],
+      "purpose": "Verify calls on a mock.",
+      "common_import": "org.mockito.kotlin.verify"
+    },
+    {
+      "name": "verifyNoMoreInteractions",
+      "kind": "function",
+      "signature_patterns": [
+        "fun verifyNoMoreInteractions(vararg mocks: Any)"
+      ],
+      "purpose": "Verify no unverified interactions remain."
+    },
+    {
+      "name": "verifyNoInteractions",
+      "kind": "function",
+      "signature_patterns": [
+        "fun verifyNoInteractions(vararg mocks: Any)"
+      ],
+      "purpose": "Verify no interactions occurred."
+    },
+    {
+      "name": "reset",
+      "kind": "function",
+      "signature_patterns": [
+        "fun reset(vararg mocks: Any)"
+      ],
+      "purpose": "Reset mocks."
+    },
+    {
+      "name": "clearInvocations",
+      "kind": "function",
+      "signature_patterns": [
+        "fun clearInvocations(vararg mocks: Any)"
+      ],
+      "purpose": "Clear recorded invocations without resetting stubbing."
+    },
+    {
+      "name": "inOrder",
+      "kind": "function",
+      "signature_patterns": [
+        "fun inOrder(vararg mocks: Any): InOrder"
+      ],
+      "purpose": "Create in-order verifier."
+    },
+    {
+      "name": "times",
+      "kind": "function",
+      "signature_patterns": [
+        "fun times(wantedNumberOfInvocations: Int): VerificationMode"
+      ],
+      "purpose": "Verification mode for exact invocation count."
+    },
+    {
+      "name": "never",
+      "kind": "function",
+      "signature_patterns": [
+        "fun never(): VerificationMode"
+      ],
+      "purpose": "Verification mode for zero invocations."
+    },
+    {
+      "name": "atLeastOnce",
+      "kind": "function",
+      "signature_patterns": [
+        "fun atLeastOnce(): VerificationMode"
+      ],
+      "purpose": "Verification mode for one or more invocations."
+    },
+    {
+      "name": "atLeast",
+      "kind": "function",
+      "signature_patterns": [
+        "fun atLeast(minNumberOfInvocations: Int): VerificationMode"
+      ],
+      "purpose": "Verification mode for minimum invocation count."
+    },
+    {
+      "name": "atMost",
+      "kind": "function",
+      "signature_patterns": [
+        "fun atMost(maxNumberOfInvocations: Int): VerificationMode"
+      ],
+      "purpose": "Verification mode for maximum invocation count."
+    },
+    {
+      "name": "only",
+      "kind": "function",
+      "signature_patterns": [
+        "fun only(): VerificationMode"
+      ],
+      "purpose": "Verify this was the only interaction."
+    },
+    {
+      "name": "timeout",
+      "kind": "function",
+      "signature_patterns": [
+        "fun timeout(millis: Long): VerificationWithTimeout"
+      ],
+      "purpose": "Async verification with timeout."
+    },
+    {
+      "name": "after",
+      "kind": "function",
+      "signature_patterns": [
+        "fun after(millis: Long): VerificationAfterDelay"
+      ],
+      "purpose": "Delayed verification mode."
+    },
+    {
+      "name": "description",
+      "kind": "function",
+      "signature_patterns": [
+        "fun description(description: String): VerificationMode"
+      ],
+      "purpose": "Attach description to verification failure."
+    },
+    {
+      "name": "withSettings",
+      "kind": "function",
+      "signature_patterns": [
+        "fun withSettings(): MockSettings"
+      ],
+      "purpose": "Create Mockito MockSettings."
+    },
+    {
+      "name": "doReturn",
+      "kind": "function",
+      "signature_patterns": [
+        "fun <T> doReturn(value: T): Stubber",
+        "fun doReturn(toBeReturned: Any?, vararg nextToBeReturned: Any?): Stubber"
+      ],
+      "purpose": "Stub return values, useful for spies/final call ordering."
+    },
+    {
+      "name": "doThrow",
+      "kind": "function",
+      "signature_patterns": [
+        "fun doThrow(toBeThrown: Throwable): Stubber",
+        "fun doThrow(toBeThrown: Class<out Throwable>): Stubber"
+      ],
+      "purpose": "Stub thrown exceptions."
+    },
+    {
+      "name": "doAnswer",
+      "kind": "function",
+      "signature_patterns": [
+        "fun doAnswer(answer: Answer<*>): Stubber"
+      ],
+      "purpose": "Stub custom answer."
+    },
+    {
+      "name": "doNothing",
+      "kind": "function",
+      "signature_patterns": [
+        "fun doNothing(): Stubber"
+      ],
+      "purpose": "Stub void/unit method to do nothing."
+    },
+    {
+      "name": "doCallRealMethod",
+      "kind": "function",
+      "signature_patterns": [
+        "fun doCallRealMethod(): Stubber"
+      ],
+      "purpose": "Stub call to real method."
+    },
+    {
+      "name": "argumentCaptor",
+      "kind": "inline function",
+      "signature_patterns": [
+        "inline fun <reified T : Any> argumentCaptor(): KArgumentCaptor<T>"
+      ],
+      "purpose": "Create Kotlin argument captor."
+    },
+    {
+      "name": "capture",
+      "kind": "function",
+      "signature_patterns": [
+        "fun KArgumentCaptor<T>.capture(): T"
+      ],
+      "purpose": "Capture non-null argument."
+    },
+    {
+      "name": "captureNullable",
+      "kind": "function",
+      "signature_patterns": [
+        "fun KArgumentCaptor<T>.captureNullable(): T?"
+      ],
+      "purpose": "Capture nullable argument."
+    },
+    {
+      "name": "any",
+      "kind": "inline function",
+      "signature_patterns": [
+        "inline fun <reified T : Any> any(): T"
+      ],
+      "purpose": "Matcher for any non-null value."
+    },
+    {
+      "name": "anyOrNull",
+      "kind": "inline function",
+      "signature_patterns": [
+        "inline fun <reified T : Any> anyOrNull(): T?"
+      ],
+      "purpose": "Matcher for nullable any value."
+    },
+    {
+      "name": "anyVararg",
+      "kind": "inline function",
+      "signature_patterns": [
+        "inline fun <reified T : Any> anyVararg(): T"
+      ],
+      "purpose": "Matcher for vararg."
+    },
+    {
+      "name": "isNull",
+      "kind": "inline function",
+      "signature_patterns": [
+        "inline fun <reified T : Any> isNull(): T?"
+      ],
+      "purpose": "Matcher for null."
+    },
+    {
+      "name": "isNotNull",
+      "kind": "inline function",
+      "signature_patterns": [
+        "inline fun <reified T : Any> isNotNull(): T"
+      ],
+      "purpose": "Matcher for not-null."
+    },
+    {
+      "name": "notNull",
+      "kind": "inline function",
+      "signature_patterns": [
+        "inline fun <reified T : Any> notNull(): T"
+      ],
+      "purpose": "Alias-style not-null matcher."
+    },
+    {
+      "name": "nullable",
+      "kind": "inline function",
+      "signature_patterns": [
+        "inline fun <reified T : Any> nullable(): T?"
+      ],
+      "purpose": "Matcher accepting null and non-null of type."
+    },
+    {
+      "name": "eq",
+      "kind": "function",
+      "signature_patterns": [
+        "fun <T> eq(value: T): T"
+      ],
+      "purpose": "Equality matcher."
+    },
+    {
+      "name": "same",
+      "kind": "function",
+      "signature_patterns": [
+        "fun <T> same(value: T): T"
+      ],
+      "purpose": "Reference identity matcher."
+    },
+    {
+      "name": "refEq",
+      "kind": "function",
+      "signature_patterns": [
+        "fun <T> refEq(value: T, vararg excludeFields: String): T"
+      ],
+      "purpose": "Reflection equality matcher."
+    },
+    {
+      "name": "argThat",
+      "kind": "inline function",
+      "signature_patterns": [
+        "inline fun <reified T : Any> argThat(noinline predicate: T.() -> Boolean): T"
+      ],
+      "purpose": "Predicate matcher."
+    },
+    {
+      "name": "assertArg",
+      "kind": "inline function",
+      "signature_patterns": [
+        "inline fun <reified T : Any> assertArg(noinline block: T.() -> Unit): T"
+      ],
+      "purpose": "Matcher that asserts on argument."
+    },
+    {
+      "name": "check",
+      "kind": "inline function",
+      "signature_patterns": [
+        "inline fun <reified T : Any> check(noinline predicate: T.() -> Unit): T"
+      ],
+      "purpose": "Argument checker/assertion helper."
+    },
+    {
+      "name": "booleanThat",
+      "kind": "function",
+      "signature_patterns": [
+        "fun booleanThat(predicate: (Boolean) -> Boolean): Boolean"
+      ],
+      "purpose": "Primitive boolean matcher."
+    },
+    {
+      "name": "byteThat",
+      "kind": "function",
+      "signature_patterns": [
+        "fun byteThat(predicate: (Byte) -> Boolean): Byte"
+      ],
+      "purpose": "Primitive byte matcher."
+    },
+    {
+      "name": "charThat",
+      "kind": "function",
+      "signature_patterns": [
+        "fun charThat(predicate: (Char) -> Boolean): Char"
+      ],
+      "purpose": "Primitive char matcher."
+    },
+    {
+      "name": "doubleThat",
+      "kind": "function",
+      "signature_patterns": [
+        "fun doubleThat(predicate: (Double) -> Boolean): Double"
+      ],
+      "purpose": "Primitive double matcher."
+    },
+    {
+      "name": "floatThat",
+      "kind": "function",
+      "signature_patterns": [
+        "fun floatThat(predicate: (Float) -> Boolean): Float"
+      ],
+      "purpose": "Primitive float matcher."
+    },
+    {
+      "name": "intThat",
+      "kind": "function",
+      "signature_patterns": [
+        "fun intThat(predicate: (Int) -> Boolean): Int"
+      ],
+      "purpose": "Primitive int matcher."
+    },
+    {
+      "name": "longThat",
+      "kind": "function",
+      "signature_patterns": [
+        "fun longThat(predicate: (Long) -> Boolean): Long"
+      ],
+      "purpose": "Primitive long matcher."
+    },
+    {
+      "name": "shortThat",
+      "kind": "function",
+      "signature_patterns": [
+        "fun shortThat(predicate: (Short) -> Boolean): Short"
+      ],
+      "purpose": "Primitive short matcher."
+    },
+    {
+      "name": "AdditionalMatchers",
+      "kind": "functions",
+      "signature_patterns": [
+        "geq(value)",
+        "leq(value)",
+        "gt(value)",
+        "lt(value)",
+        "cmpEq(value)",
+        "find(regex)",
+        "aryEq(array)",
+        "and(first, second)",
+        "or(first, second)",
+        "not(value)"
+      ],
+      "purpose": "Kotlin wrappers for Mockito AdditionalMatchers."
+    },
+    {
+      "name": "given",
+      "kind": "function",
+      "signature_patterns": [
+        "fun <T> given(methodCall: T): BDDMockito.BDDMyOngoingStubbing<T>"
+      ],
+      "purpose": "BDD style stubbing."
+    },
+    {
+      "name": "then",
+      "kind": "function",
+      "signature_patterns": [
+        "fun <T> then(mock: T): BDDMockito.Then<T>"
+      ],
+      "purpose": "BDD style verification."
+    },
+    {
+      "name": "willReturn/willThrow/willAnswer/willDoNothing/willCallRealMethod",
+      "kind": "functions",
+      "signature_patterns": [
+        "BDDMockito-style Kotlin wrappers"
+      ],
+      "purpose": "BDD style stubbing helpers."
+    }
+  ],
+  "rag_usage_hints": [
+    "Prefer org.mockito.kotlin.any/eq/argThat over org.mockito.ArgumentMatchers directly in Kotlin tests.",
+    "Use whenever(mock.call()).thenReturn(value) instead of Mockito.`when` in Kotlin.",
+    "Use argumentCaptor<T>() and captor.capture() for captors.",
+    "Avoid mixing raw values and matchers in the same call unless raw values use eq(...)."
+  ],
+  "local_exhaustive_extractor": {
+    "requires": [
+      "JDK 17+",
+      "curl",
+      "jar",
+      "javap"
+    ],
+    "commands": [
+      "curl -L -o mockito-kotlin-5.2.1.jar https://repo1.maven.org/maven2/org/mockito/kotlin/mockito-kotlin/5.2.1/mockito-kotlin-5.2.1.jar",
+      "jar tf mockito-kotlin-5.2.1.jar | grep '\\.class$' | sed 's#/#.#g;s#\\.class$##' > classes.txt",
+      "while read c; do javap -classpath mockito-kotlin-5.2.1.jar -public \"$c\"; done < classes.txt > mockito-kotlin-5.2.1-public-api.txt"
+    ],
+    "note": "For Kotlin top-level APIs, javap class names usually end with *Kt. Parse public static methods from those files into JSON."
+  },
+  "note": "API index for local LLM/RAG use. Entries focus on public test-facing APIs and include a local extractor recipe to regenerate from official artifacts for bytecode-exhaustive coverage."
+}
