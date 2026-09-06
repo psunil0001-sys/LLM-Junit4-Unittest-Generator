@@ -10,7 +10,7 @@ triggers: [android_foreground_service, android_work_manager, instrumented]
 - Output path: `src/androidTest/java/.../<Cut>InstrumentedTest.kt` (mirror source package).
 - `@HiltAndroidTest` + `@RunWith(AndroidJUnit4::class)` — **never** `@RunWith(RobolectricTestRunner::class)`.
 - `@get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)`; call `hiltRule.inject()` in `@Before`.
-- Shared runner when the module uses `:testsupport`: `com.HiltTestRunner` + androidTest `HiltTestApplication` manifest (`tools:replace`). Prefer shared hosts (`HiltDelegateActivity`, `HiltCarUiTestActivity`, `PlainHiltActivity`) over per-module copies.
+- Shared runner when the module uses `:testsupport`: `com.HiltTestRunner` + androidTest `HiltTestApplication` manifest (`tools:replace`). Prefer shared hosts (`HiltContainerHostActivity`, `HiltToolbarHostActivity`, `PlainHiltActivity`) over per-module copies.
 - Use `ActivityScenario.launch(...)` for lifecycle — not `Robolectric.buildActivity`. For fragments see `instrumented_hilt_fragment_test`; for FGS see `instrumented_foreground_service_test`.
 - `@BindValue` / `@TestInstallIn` for every SOURCE `@Inject` dependency before launch.
 - Gradle verify (when device present): `connected*AndroidTest` + JaCoCo (`instrumentedCoverageReport`).
@@ -32,7 +32,7 @@ triggers: [android_foreground_service, android_work_manager, instrumented]
 ## Ordered write steps (1..N)
 
 1. File + imports: androidTest package; `@HiltAndroidTest`, `@RunWith(AndroidJUnit4::class)`, `HiltAndroidRule`, `ActivityScenario`, `@BindValue`, MockK/Mockito as needed.
-2. Rules: `@get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)`; optional `@get:Rule(order = 1) val activityRule = ActivityTestRule(...)` only when Scenario insufficient.
+2. Rules: `@get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)`; prefer `ActivityScenario` only — avoid deprecated `ActivityTestRule`.
 3. Arrange: `@BindValue` for each SOURCE `@Inject`; `hiltRule.inject()` in `@Before`.
 4. Act: `ActivityScenario.launch(Cut::class.java)` (or `FragmentScenario` + nav host); trigger the delta behavior on device.
 5. Assert: observable side effects (UI, service start, WorkManager enqueue verify with `WorkManagerTestInitHelper` when needed).

@@ -12,19 +12,28 @@ rules:
       invalid_mockk_suspend_stub: MockK lane must stub suspend members with coEvery / coVerify,
       not every { } / verify { }.
 
+  # Teardown only when mockkObject(...) is actually invoked (not substring of unmockkObject).
+  # Exempt when file-level unmockkAll/clearAllMocks OR an @After method unmocks.
   - when:
-      test_contains: mockkObject
-      test_not: 'unmockkObject|clearAllMocks|unmockkAll'
+      test: '\bmockkObject\s*\('
+      test_not: 'unmockkAll|clearAllMocks|@After[\s\S]{0,4000}?\bunmockk(?:Object|All)?\b|\bunmockkObject\s*\('
     message: >-
       invalid_mockk_object_teardown: mockkObject requires unmockkObject / clearAllMocks / unmockkAll
-      in @After so later tests do not leak the object mock.
+      in an @After method (or file-level unmockkAll/clearAllMocks) so later tests do not leak the object mock.
 
   - when:
-      test_contains: mockkStatic
-      test_not: 'unmockkStatic|clearAllMocks|unmockkAll'
+      test: '\bmockkStatic\s*\('
+      test_not: 'unmockkAll|clearAllMocks|@After[\s\S]{0,4000}?\bunmockk(?:Static|All)?\b|\bunmockkStatic\s*\('
     message: >-
       invalid_mockk_static_teardown: mockkStatic requires unmockkStatic / clearAllMocks / unmockkAll
-      in @After.
+      in an @After method (or file-level unmockkAll/clearAllMocks).
+
+  - when:
+      test: '\bmockkConstructor\s*\('
+      test_not: 'unmockkAll|clearAllMocks|@After[\s\S]{0,4000}?\bunmockk(?:Constructor|All)?\b|\bunmockkConstructor\s*\('
+    message: >-
+      invalid_mockk_constructor_teardown: mockkConstructor requires unmockkConstructor / clearAllMocks / unmockkAll
+      in an @After method (or file-level unmockkAll/clearAllMocks).
 
   - when:
       test_contains: io.mockk

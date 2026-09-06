@@ -8,13 +8,13 @@ triggers: [delegated_viewmodel_fragment, hilt_fragment]
 ## MUST
 
 - SOURCE is an **`@AndroidEntryPoint` Fragment** with `by viewModels()` / `activityViewModels()`.
-- Attach Cut using the **Hilt Fragment lifecycle** approach only (`hilt_fragment_lifecycle`): `@HiltAndroidTest` + `HiltAndroidRule` + `HiltTestApplication` + module `@AndroidEntryPoint` host (main or `src/test` `HiltTestActivity`) + `commitNow()`.
+- Attach Cut using the **Hilt Fragment lifecycle** approach only (`hilt_fragment_lifecycle`): `@HiltAndroidTest` + `HiltAndroidRule` + `HiltTestApplication` + module `@AndroidEntryPoint` host (main or `src/test` `HiltHostActivity`) + `commitNow()`.
 - `@BindValue` / `@TestInstallIn` for SOURCE **collaborators** (repos/use cases) — **never** the delegated ViewModel type.
 - Host bootstrap: theme on `get()` **before** `setup()` / `create()` (both OK when theme is set first).
 - `activityViewModels()`: attach under the **same** host Activity so the Activity-scoped VM is shared. Seed the Activity `ViewModelStore` **before** `commitNow` when the test needs a non-default StateFlow/LiveData:
 
 ```kotlin
-val controller = Robolectric.buildActivity(HiltTestActivity::class.java)
+val controller = Robolectric.buildActivity(HiltHostActivity::class.java)
 val activity = controller.get()
 activity.setTheme(androidx.appcompat.R.style.Theme_AppCompat)
 controller.setup()
@@ -39,7 +39,7 @@ ShadowLooper.idleMainLooper()
 
 ## Ordered write steps (1..N)
 
-1. Imports / runner + Hilt annotations; import module `HiltTestActivity` when using the test host.
+1. Imports / runner + Hilt annotations; import module `HiltHostActivity` when using the test host.
 2. Arrange: `hiltRule.inject()`; `@BindValue` SOURCE deps (not the VM type).
 3. Stub MOCKING LANE on binds before attach.
 4. Act: host `get()` → `setTheme` → `setup()` then `commitNow()` add Cut; `ShadowLooper.idleMainLooper()`; drive public UI / public VM APIs.

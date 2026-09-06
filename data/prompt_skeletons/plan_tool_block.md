@@ -40,10 +40,10 @@ Glob / Grep:
 Bash:
   Any local command allowed (`ls`, `cat`, `pwd`, `python3`, find/grep). Prefer find/grep when
   Glob/Grep is not enough. Examples:
-    ls -la /abs/feature/onboarding
-    find /abs/feature/onboarding -name '*nav_graph.xml'
-    grep -r 'HiltTestActivity' /abs/feature/onboarding
-    find /abs/feature/onboarding/build/generated -name '*.kt'
+    ls -la /abs/path/to/module
+    find /abs/path/to/module -name '*nav_graph.xml'
+    grep -r 'HiltHostActivity' /abs/path/to/module
+    find /abs/path/to/module/build/generated -name '*.kt'
   Optional: `./gradlew` for THIS MODULE's unit/androidTest compile+test.
   Never network commands: `curl`, `wget`, `ssh`, `pip`, `npm`, `git clone|fetch|pull|push`.
   Do not: re-run the same find/grep.

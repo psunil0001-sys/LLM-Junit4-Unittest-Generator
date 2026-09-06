@@ -23,8 +23,8 @@ rules:
       test_contains: activityClass=
     message: >-
       The generated test is trying to pass `activityClass = ...` into launchFragmentInContainer/FragmentScenario, but that is not a verified local API here.
-      Replace this with the module's manifest-declared HiltTestActivity and the actual fragment class under test.
-      For Robolectric, use: val activityController = Robolectric.buildActivity(HiltTestActivity::class.java)
+      Replace this with the module's manifest-declared HiltHostActivity and the actual fragment class under test.
+      For Robolectric, use: val activityController = Robolectric.buildActivity(HiltHostActivity::class.java)
       .theme(androidx.appcompat.R.style.Theme_AppCompat).create();
       attach TargetFragment with commitNow();
       activityController.start(); install any NavController; then activityController.resume().
@@ -150,14 +150,14 @@ rules:
 
   - when:
       source_contains: '@AndroidEntryPoint'
-      test_contains: Robolectric.buildActivity(HiltTestActivity::class.java)
-      test: 'Robolectric\.buildActivity\(HiltTestActivity::class\.java\)\.create\(\)\.resume\('
+      test_contains: Robolectric.buildActivity(HiltHostActivity::class.java)
+      test: 'Robolectric\.buildActivity\(HiltHostActivity::class\.java\)\.create\(\)\.resume\('
       test_not_contains:
         - .theme(
         - .setTheme(
     message: >-
-      Robolectric HiltTestActivity setup should apply Theme_AppCompat before the Fragment view inflates.
-      Use `activityController = Robolectric.buildActivity(HiltTestActivity::class.java).create();
+      Robolectric HiltHostActivity setup should apply Theme_AppCompat before the Fragment view inflates.
+      Use `activityController = Robolectric.buildActivity(HiltHostActivity::class.java).create();
       activityController.get().setTheme(androidx.appcompat.R.style.Theme_AppCompat)`;
       attach the Fragment with commitNow(); activityController.start(); install any NavController; activityController.resume().
 

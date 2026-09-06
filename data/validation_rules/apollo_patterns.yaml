@@ -33,7 +33,7 @@ rules:
       test: 'invokeApiExt\s*\(\s*"[A-Za-z0-9_]+"\s*,\s*[A-Za-z_][A-Za-z0-9_]*\s*,\s*arrayOf\s*\('
     message: >-
       invokeApiExt should receive the method name plus vararg arguments.
-      Call it as invokeApiExt("toCreateTripInputGQL", projectModel).
+      Call it as invokeApiExt("toDomainInputGQL", projectModel).
 
   - when:
       test_contains: mockApollo(
@@ -47,7 +47,7 @@ rules:
       test_contains: thenThrow
     message: >-
       Do not stub ApolloClient.query()/mutation() with thenThrow.
-      Use apolloClient(QueueNetworkTransport().enqueueThrow(...)) so execute() observes the failure.
+      Use ApolloClient + QueueTestNetworkTransport (Apollo 5) / enqueueTestResponse, or a project QueueNetworkTransport.enqueueThrow(...) harness, so execute() observes the failure.
 
   - when:
       test_contains_any:

@@ -1,8 +1,8 @@
 rules:
   - when:
       test: '@Test'
-      test_not_contains: import org.junit.Test
-    message: JUnit4 tests should import org.junit.Test.
+      test_not: 'import\s+org\.junit\.(?:Test|\*)'
+    message: JUnit4 tests should import org.junit.Test (or import org.junit.*).
 
   - when:
       test: '(?m)@Test(?:\([^)]*\))?\s*\n(?:[ \t]*@[^\n]+\n)*[ \t]*(?!fun\b)`[^`\n]+`\s*\('

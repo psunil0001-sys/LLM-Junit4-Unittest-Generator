@@ -160,6 +160,9 @@ def _when_matches(when: dict[str, Any], *, test_code: str, source_code: str, ctx
     for token in _as_list(when.get("test_not_contains")):
         if token in test:
             return False
+    not_contains_any = _as_list(when.get("test_not_contains_any"))
+    if not_contains_any and any(token in test for token in not_contains_any):
+        return False
     for token in _as_list(when.get("source_not_any")):
         if token in source:
             return False
@@ -971,7 +974,7 @@ def collect_fragment_validation_issues(test_code: str, output_file_path: str, so
     if (
         "@AndroidEntryPoint" in source
         and "findNavController" in source
-        and "Robolectric.buildActivity(HiltTestActivity::class.java)" in test_code
+        and "Robolectric.buildActivity(HiltHostActivity::class.java)" in test_code
         and "Navigation.setViewNavController" in test_code
     ):
         first_resume = test_code.find(".resume()")
@@ -1101,7 +1104,23 @@ _APPAUTH_MARKERS = (
     "TokenResponse.Builder",
     "AuthorizationServiceConfiguration",
 )
-_APOLLO_API_PACKAGE = r"(?:[A-Za-z_][A-Za-z0-9_]*\.)+journeylog\.api"
+def _apollo_api_package_regex() -> str:
+    """Regex for generated Apollo api packages.
+
+    Controlled by TESTGEN_APOLLO_API_PACKAGE (dot package, default ``your.app.api``).
+    Example: ``your.app.api`` → matches ``…your.app.api`` and ``…your.app.api.type``.
+    """
+    raw = (os.environ.get("TESTGEN_APOLLO_API_PACKAGE") or "your.app.api").strip()
+    parts = [p for p in raw.split(".") if p]
+    if not parts:
+        parts = ["your", "app", "api"]
+    escaped = r"\.".join(re.escape(p) for p in parts)
+    return rf"(?:[A-Za-z_][A-Za-z0-9_]*\.)+{escaped}"
+
+
+# Prefer _apollo_api_package_regex() at use sites so TESTGEN_APOLLO_API_PACKAGE is live.
+_APOLLO_API_PACKAGE = _apollo_api_package_regex()  # default snapshot at import
+
 _BIND_VALUE_TYPE = re.compile(
     r"@BindValue\b(?:[^\n]*\n){0,4}[^\n]*\b(?:lateinit\s+)?(?:var|val)\s+[A-Za-z_][A-Za-z0-9_]*\s*:\s*([A-Za-z_][A-Za-z0-9_.]*)"
 )
@@ -1419,17 +1438,18 @@ def collect_apollo_validation_issues(
     test_code: str, output_file_path: str, source_code: str, test_report
 ) -> list[str]:
     del output_file_path, test_report
+    api_pkg = _apollo_api_package_regex()
     issues = run_pattern_rules(test_code, load_rules("apollo_patterns.yaml"), source_code=source_code)
     if re.search(
-        rf"(?m)^\s*import\s+{_APOLLO_API_PACKAGE}\.(?:type\.)?\*\s*$", test_code
+        rf"(?m)^\s*import\s+{api_pkg}\.(?:type\.)?\*\s*$", test_code
     ) and has_apollo_response_extension_function(source_code):
         issues.append(
             "Wildcard Apollo generated imports make response tests depend on compile-time generated types. "
             "Use project model imports directly and reference operation response receivers through Class.forName strings."
         )
     if re.search(
-        rf"(?m)^\s*import\s+{_APOLLO_API_PACKAGE}\.type\.[A-Za-z_][A-Za-z0-9_]*\s*$", test_code
-    ) and re.search(rf"{_APOLLO_API_PACKAGE}\.type", source_code):
+        rf"(?m)^\s*import\s+{api_pkg}\.type\.[A-Za-z_][A-Za-z0-9_]*\s*$", test_code
+    ) and re.search(rf"{api_pkg}\.type", source_code):
         issues.append(
             "Apollo generated api.type imports make tests depend on compile-time generated classes. "
             "Use Class.forName strings and Java reflection for generated input return types."
@@ -1440,10 +1460,11 @@ def collect_reflection_validation_issues(
     test_code: str, output_file_path: str, source_code: str, test_report
 ) -> list[str]:
     del output_file_path, test_report
+    api_pkg = _apollo_api_package_regex()
     issues = run_pattern_rules(
         test_code, load_rules("apollo_reflection_patterns.yaml"), source_code=source_code
     )
-    if not re.search(rf"{_APOLLO_API_PACKAGE}\.type", source_code):
+    if not re.search(rf"{api_pkg}\.type", source_code):
         issues = [
             item
             for item in issues

@@ -59,7 +59,7 @@ Body MUST use these sections (keep headings exactly):
 ## 2. Infra deltas
 - Only differences vs the PRIMARY recipe (runner/host/theme/rules). Else write: `per recipe`
 - Test runner: <JUnit4 only — never MockitoExtension / @ExtendWith>
-- Host: <AppCompatActivity | HiltTestActivity | N/A — must match recipe_lane>
+- Host: <AppCompatActivity | HiltHostActivity | N/A — must match recipe_lane>
 
 ## 3. Test Cases
 | ID | Kover Lines | Tag | Branch Target | Assertions |

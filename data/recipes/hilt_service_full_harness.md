@@ -20,7 +20,7 @@ triggers: [hilt_service]
   2. **Proven gap (library Robolectric):** `startService` can return a `ComponentName` without invoking Hilt inject / `onStartCommand`. Then use:
      `Robolectric.buildService(Cut::class.java, intent).create().startCommand(0, 0)` under `@Config(application = HiltTestApplication::class)`.
 - Module must include `testImplementation("com.google.dagger:hilt-android-testing:…")` + `kspTest` compiler; prefer_not_testable for Hilt Service only after that classpath is confirmed missing.
-- When `@BindValue` replaces types also bound by a `@Binds` module (e.g. `ApiModule.BindsApiModule`, `JLRepoModule`), `@UninstallModules` that module and `@BindValue` **all** of its bound types (AuthRepository **and** JourneyApi / AuthSource). See `BootCompleteForegroundServiceTest` for a multi-module `@UninstallModules` pattern.
+- When `@BindValue` replaces types also bound by a `@Binds` module (e.g. `ApiModule.BindsApiModule`, `RepoModule`), `@UninstallModules` that module and `@BindValue` **all** of its bound types (AuthRepository **and** NetworkApi / AuthSource). Prefer a multi-binding `@UninstallModules` pattern covering every unbound type.
 
 - For suspend work launched in `onStartCommand` (via injected `CoroutineScope`):
   - use `kotlinx.coroutines.test.runTest { }` in each test method

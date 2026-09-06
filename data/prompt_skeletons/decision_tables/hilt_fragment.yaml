@@ -7,7 +7,7 @@ when_any_tags:
 rows:
   - when: "Attach / lifecycle / onViewCreated / findNavController coverage"
     do: "@HiltAndroidTest + HiltAndroidRule + @Config(application = HiltTestApplication::class); hiltRule.inject() in @Before; attach Cut via module @AndroidEntryPoint Activity + commitNow"
-    do_not: "launchFragmentInContainer; invent a local HiltTestActivity; attach without BindValue/TestInstallIn for @Inject deps"
+    do_not: "launchFragmentInContainer; invent a local HiltHostActivity; attach without BindValue/TestInstallIn for @Inject deps"
   - when: "by viewModels() / activityViewModels()"
     do: "Attach under the real Hilt graph; drive public VM methods after commitNow"
     do_not: "@BindValue of the ViewModel type unless bindvalue_viewmodel_fallback"

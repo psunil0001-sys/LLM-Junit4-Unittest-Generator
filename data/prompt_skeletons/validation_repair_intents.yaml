@@ -52,8 +52,9 @@ invalid_hilt_worker_harness: Unit-test @HiltWorker doWork() with mock/mockk Work
 invalid_permissions_static_grant: Use Shadows.shadowOf(context).grantPermissions / denyPermissions; Shadows.grantPermissions static
   does not exist.
 invalid_mockk_suspend_stub: Stub suspend members with coEvery / coVerify in the MockK lane, not every { }.
-invalid_mockk_object_teardown: Call unmockkObject / clearAllMocks / unmockkAll in @After after mockkObject.
-invalid_mockk_static_teardown: Call unmockkStatic / clearAllMocks / unmockkAll in @After after mockkStatic.
+invalid_mockk_object_teardown: Call unmockkObject / clearAllMocks / unmockkAll in @After (or file-level unmockkAll) after mockkObject.
+invalid_mockk_static_teardown: Call unmockkStatic / clearAllMocks / unmockkAll in @After (or file-level unmockkAll) after mockkStatic.
+invalid_mockk_constructor_teardown: Call unmockkConstructor / clearAllMocks / unmockkAll in @After after mockkConstructor.
 invalid_mockk_static_shape: mockkStatic(Type::class) or mockkStatic("pkg.Type"), not Type::class.java (Mockito mockStatic).
 invalid_hilt_activity_reflection: Do not reflect or replace Hilt-injected/private Activity fields; cover public lifecycle/UI
   behavior or report the missing seam.
@@ -61,7 +62,7 @@ invalid_hilt_lifecycle_setup: Use complete Hilt test setup for attached @Android
   to non-attached public-contract coverage.
 invalid_hilt_manual_injection: Remove reflection/manual field injection from attached Hilt Fragment tests; close the graph
   or reduce strategy.
-invalid_host_strategy: Import the manifest-declared HiltTestActivity from the owning module; do not declare a local/fake host.
+invalid_host_strategy: Import the manifest-declared HiltHostActivity from the owning module; do not declare a local/fake host.
 invalid_lateinit_injection_setup_order: Construct the ViewModel first, then assign injected lateinit collaborators with direct
   statements.
 invalid_mockedstatic_factory: Use org.mockito.Mockito.mockStatic(Type::class.java), not MockedStatic.mockStatic(...).
@@ -118,7 +119,7 @@ mixed_mocking_frameworks: Do not mix io.mockk and org.mockito / mockito-kotlin i
   for the TARGET file and use it throughout.
 nonstandard_mock_framework: Stay on the mocking framework already in this TARGET file. Do not mix io.mockk and org.mockito
   / mockito-kotlin in the same file.
-instrumented_missing_hilt_annotation: Add @HiltAndroidTest to the androidTest class when SOURCE uses @AndroidEntryPoint or @Inject.
+instrumented_missing_hilt_annotation: Add @HiltAndroidTest to the androidTest class when SOURCE uses Hilt markers (@AndroidEntryPoint / @HiltWorker / @HiltViewModel / dagger.hilt imports) — not bare @Inject alone.
 instrumented_missing_hilt_rule: Add @get:Rule val hiltRule = HiltAndroidRule(this) and call hiltRule.inject() in @Before.
 instrumented_forbidden_robolectric_pattern: Remove Robolectric runner, @Config, and ActivityController from androidTest. HiltTestApplication belongs on the androidTest manifest and HiltTestRunner, not @Config on the test class.
 instrumented_missing_android_junit4: Add @RunWith(AndroidJUnit4::class) to the androidTest class.

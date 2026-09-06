@@ -10,7 +10,7 @@ Pipeline for generating Kotlin/JUnit4 tests for Android Gradle modules, verifyin
 |---|---|---|
 | Model server | `UnitTest_gen/AgenticLLM/` | llama.cpp OpenAI-compatible server (`:8080/v1`), or remote vLLM |
 | Agents | `UnitTest_gen/core/adk_agents/` | Google ADK planner / coder / fixer + openai SDK |
-| CLI entrypoints | `UnitTest_gen/AI_Unittestgenerator.py`, `UnitTest_gen/multifile_orchestrater.py` | parse flags/env, pick targets, run pipeline |
+| CLI entrypoints | `UnitTest_gen/AI_Unittestgenerator.py` (optional `multifile_orchestrater.py` — **not in this branch**) | parse flags/env, pick targets, run pipeline |
 | Core runtime | `UnitTest_gen/core/` | model resolve/health, tool policy, Gradle runner, file-cache LRU, diagnostics |
 | Kotlin pipeline | `UnitTest_gen/kotlin/` | plan/coder orchestration, validation, coverage parsing, layer assignment |
 | Data assets | `UnitTest_gen/data/` | recipes, prompt skeletons, validation rules, and prompt decision blocks |
@@ -59,13 +59,8 @@ Notes:
 - Auto-starts llama-server when `llm_backend=llama` unless disabled.
 - `--agent-model` / `--agent-model-path` override `AgenticLLM/.env`.
 
-Run all files through the multi-file orchestrator:
-
-```bash
-python UnitTest_gen/multifile_orchestrater.py -R /path/to/android/project
-```
-
-Use `--pipeline-phase plan` to write plans only, or `--pipeline-phase coder` to consume saved plans.
+Multi-file orchestration (`multifile_orchestrater.py`) is **optional / not shipped on this branch**.
+Use `--pipeline-phase plan` to write plans only, or `--pipeline-phase coder` to consume saved plans on the single-file CLI.
 
 ---
 
@@ -94,9 +89,14 @@ flowchart LR
 ## Key policies
 
 - **Write/Edit:** `src/test`, `src/androidTest`, `build.gradle*`, `UnitTest_gen/`, and planner `*.plan.md` only — never `src/main`.
-- **Bash:** any local command (`ls`/`cat`/`python3`/find/grep/`./gradlew`); network commands denied (curl/wget/pip/npm/ssh/scp, `git clone|fetch|pull|push`).
+- **Bash:** allowlist-first (`./gradlew`/`gradlew`, `ls`, `find`, `cat`, `head`, `tail`, `wc`, `pwd`, `echo`, `which`, `grep`/`rg`, `mkdir -p` under project roots).
+  Interpreters (`python`/`bash`/`sh`), recursive deletes, and network tools are denied; abs paths confined to `TESTGEN_AGENT_CWD` and UnitTest_gen package root.
+- **Read:** resolved paths must stay under project root or UnitTest_gen package root; `/etc/*` and `~/.ssh/*` hard-denied.
 - **Denied tools:** WebSearch / WebFetch / NotebookEdit (omitted from ADK tool list).
-- Prompt policy text lives in `data/prompt_skeletons/*_tool_block.md` and is still appended to agent prompts.
+- **Guardrails:** defaults **on**; opt out with `--no-post-validation` or `TESTGEN_ENABLE_GUARDRAILS=0`.
+- Prompt policy text lives in `data/prompt_skeletons/*_tool_block.md`.
+- **Generic Hilt hosts:** `HiltHostActivity`, `HiltToolbarHostActivity`, `HiltContainerHostActivity` (`HostDrawerActivity`), `HiltNavHostActivity`, theme `@style/HiltHostTheme`. CarUi library APIs remain.
+- **Apollo:** Apollo Kotlin 5.1.0 api_doc `apollo_runtime_5_1_0_api_index.json` + recipe `apollo_client_network_transport.md`; package placeholder `your.app.api` via `TESTGEN_APOLLO_API_PACKAGE`.
 
 ---
 
@@ -123,6 +123,9 @@ flowchart LR
 | `TESTGEN_AUTO_START_EMULATOR` / `TESTGEN_AOSP_ROOT` / `TESTGEN_EMULATOR_LUNCH` | Instrumented-test emulator behavior |
 | `TESTGEN_PROMPT_CACHE` | Prompt-cache backend setting (`off` by default) |
 | `TESTGEN_SEMGREP_CACHE_DIR` | Semgrep cache location |
+| `TESTGEN_ENABLE_GUARDRAILS` / `--no-post-validation` | Post-generation validation (default **on**) |
+| `TESTGEN_APOLLO_API_PACKAGE` | Dot package for generated Apollo API types (default `your.app.api`) |
+| `TESTGEN_AGENT_CWD` | Project root used for Bash/Read path confinement |
 
 ---
 

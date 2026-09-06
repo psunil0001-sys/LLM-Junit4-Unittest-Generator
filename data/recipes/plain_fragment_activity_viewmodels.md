@@ -34,7 +34,7 @@ ShadowLooper.idleMainLooper()
 
 ## MUST NOT
 
-- `@HiltAndroidTest`, `HiltAndroidRule`, `HiltTestApplication`, `@BindValue`, `@TestInstallIn`, invent `HiltTestActivity`.
+- `@HiltAndroidTest`, `HiltAndroidRule`, `HiltTestApplication`, `@BindValue`, `@TestInstallIn`, invent `HiltHostActivity`.
 - `fragment.viewModel = mock` on a delegated `val`.
 - Call, reflect, or spy on **private** methods (`getTripData`, `_binding`, …) as Act.
 - Invent a second harness (do not also plan a Hilt attach path).

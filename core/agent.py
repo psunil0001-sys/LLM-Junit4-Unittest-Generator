@@ -245,13 +245,16 @@ def run_agent(
     phase: AgentPhase = "gen",
     owning_module_dir: str = "",
 ) -> AgentResult:
-    """Run planner / coder / fixer via Google ADK + openai SDK."""
-    _ = (
-        allowed_tools,
-        denied_tools,
-        available_tools,
-        excluded_tools,
-    )
+    """Run planner / coder / fixer via Google ADK + openai SDK.
+
+    ``allowed_tools`` / ``denied_tools`` / ``available_tools`` / ``excluded_tools``
+    are retained for call-site/API compatibility and preamble logging only.
+    Enforcement is entirely in-process via ``UnitTest_gen.core.hooks`` + ADK
+    FunctionTools (``coder_tool_surface()``). CSV flags do not change the sandbox.
+    """
+    # Keep kwargs referenced so callers/tests can still pass them without lint noise.
+    if allowed_tools is None and denied_tools is None and available_tools is None and excluded_tools is None:
+        pass
     from dataclasses import replace
 
     from UnitTest_gen.core.adk_agents.runner import run_adk_agent

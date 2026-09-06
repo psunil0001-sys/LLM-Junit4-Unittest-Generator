@@ -217,7 +217,7 @@ class PipelineConfig:
     jacoco_acceptance_enabled: bool = True
     # unit | instrumented | hybrid — hybrid generates both; instrumented verify needs adb.
     test_mode: str = "auto"
-    aosp_root: str = "/home/pathipatisunilkumar/AOSP"
+    aosp_root: str = ""
     emulator_lunch: str = "sdk_car_x86_64-trunk_staging-userdebug"
     emulator_wipe_data: bool = True
     emulator_args: str = "-skin 1080x1920 -prop qemu.hw.mainkeys=0"
@@ -256,7 +256,7 @@ class PipelineConfig:
     # Same (tool, path, error) repeats abort the CLI session (0 = disabled).
     stuck_repeat_threshold: int = 2
 
-    enable_guardrails: bool = False
+    enable_guardrails: bool = True
     enable_memory_lessons: bool = False
 
     # Markdown plan artifacts (overwrite on each plan run).

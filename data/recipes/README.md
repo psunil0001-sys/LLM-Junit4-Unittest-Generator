@@ -14,7 +14,7 @@ the primary only.
 |------|------|-----------------|
 | `hilt_worker` | `@HiltWorker` | `hilt_worker_dowork` |
 | `hilt_service` | EntryPoint Service | `hilt_service_full_harness` |
-| `hilt_fragment` | EntryPoint Fragment (+ VM delegate → activity_viewmodels) | HiltAndroidRule + module / HiltTestActivity host |
+| `hilt_fragment` | EntryPoint Fragment (+ VM delegate → activity_viewmodels) | HiltAndroidRule + module / HiltHostActivity host |
 | `hilt_activity` | EntryPoint Activity (not Fragment) | `hilt_android_activity_create` |
 | `robolectric_non_hilt` | Plain Fragment/Activity UI | AppCompatActivity / FragmentScenario — **no** Hilt |
 | `plain_jvm` | No UI attach | ViewModel / object / Apollo / Room / … |
@@ -30,7 +30,7 @@ Private methods are never Act targets — cover via public entry points, or `not
 ## Non-executable surfaces (do **not** generate tests)
 
 Pure Kotlin **interfaces**, callback interfaces, and Hilt `@Module` / `@Binds`-only interfaces
-(`TripsRepo`, `CreateTripRepo`, `JLRepoModule`, `LocationListenerJL`, …) have **no executable
+(`Repo` interfaces, Hilt `@Module`/`@Binds` facades, location listeners, …) have **no executable
 bytecode**. Kover omits them; JaCoCo may still list the class under androidTest with null % —
 that is a report artifact, not an open gap.
 
@@ -38,7 +38,7 @@ UnitTest_gen exits with `no_open_gaps` / dashboard chip **`no-exec`**. Cover log
 / `Remote*DataSource` / consumer tests instead. Do not invent interface-only unit or
 instrumented tests.
 
-Modules without a main Hilt Activity may ship test-only `HiltTestActivity` under
+Modules without a main Hilt Activity may ship test-only `HiltHostActivity` under
 `src/test` for **Hilt** Fragments only (never for `robolectric_non_hilt`).
 
 ## Generic CUT (all recipes)
@@ -81,8 +81,8 @@ Grades: **A** = aligned with proven tests, no contradictions, fix pass retains k
 
 | Recipe | Role | Grade | Notes |
 |--------|------|-------|-------|
-| `apollo_client_network_transport.md` | primary / JVM | A | QueueNetworkTransport + apolloHttp; fix pass includes Case table |
-| `hilt_fragment_lifecycle.md` | primary | A | Theme before setup; ShadowLooper; HiltTestActivity |
+| `apollo_client_network_transport.md` | primary / JVM | A | Apollo 5.1.0 QueueTestNetworkTransport + enqueueTestResponse; fix pass includes Case table |
+| `hilt_fragment_lifecycle.md` | primary | A | Theme before setup; ShadowLooper; HiltHostActivity |
 | `hilt_android_activity_create.md` | primary | A | Theme before create; CarUi static stub |
 | `hilt_service_full_harness.md` | primary | A | startService + buildService fallback; @UninstallModules |
 | `hilt_worker_dowork.md` | primary | A | AssistedInject + mock WorkerParameters |
@@ -95,7 +95,7 @@ Grades: **A** = aligned with proven tests, no contradictions, fix pass retains k
 | `room_in_memory_dao.md` | primary / JVM | B+ | In-memory + destructive migration note |
 | `permissions_activity_result.md` | companion | B+ | Shadow grantPermissions example; tag trigger |
 | `osmdroid_mapview.md` | companion | B+ | IMapController mock; not_testable escape |
-| `flow_builder_cancellation_branch.md` | companion | A | Proven on TripsRepoImpl: cancel+exception → ~75% branch |
+| `flow_builder_cancellation_branch.md` | companion | A | Proven Flow builder cancel+exception path → ~75% branch |
 | `worker_service_receiver.md` | primary | B+ | Redirects Hilt Service to full harness |
 | `android_object_singleton.md` | primary / JVM | B+ | mockkObject sketch; still intentionally minimal |
 

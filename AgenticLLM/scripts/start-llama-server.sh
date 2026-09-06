@@ -29,10 +29,10 @@ if [[ -n "$_CALLER_ANTHROPIC_MODEL" ]]; then
 fi
 unset _CALLER_MODEL_PATH _CALLER_MODEL_ALIAS _CALLER_ANTHROPIC_MODEL
 
-LLAMA_CPP_DIR="${LLAMA_CPP_DIR:-/home/pathipatisunilkumar/llama-cpp-turboquant}"
+LLAMA_CPP_DIR="${LLAMA_CPP_DIR:-}"
 LLAMA_SERVER="${LLAMA_SERVER:-$LLAMA_CPP_DIR/build/bin/llama-server}"
-MODEL_PATH="${MODEL_PATH:-/home/pathipatisunilkumar/models/Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf}"
-SLOT_SAVE_PATH="${SLOT_SAVE_PATH:-/home/pathipatisunilkumar/.testgen/slots}"
+MODEL_PATH="${MODEL_PATH:-}"
+SLOT_SAVE_PATH="${SLOT_SAVE_PATH:-$ROOT/logs/slots}"
 LLAMA_HOST="${LLAMA_HOST:-127.0.0.1}"
 LLAMA_PORT="${LLAMA_PORT:-8080}"
 

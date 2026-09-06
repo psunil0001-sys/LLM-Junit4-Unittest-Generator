@@ -1,0 +1,228 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-09-06T17:21:02Z",
+  "name": "apollo-runtime",
+  "coordinates": {
+    "group_id": "com.apollographql.apollo3",
+    "artifact_id": "apollo-runtime",
+    "version": "3.8.2",
+    "gradle": "implementation(\"com.apollographql.apollo3:apollo-runtime:3.8.2\")",
+    "testing_support_gradle": "testImplementation(\"com.apollographql.apollo3:apollo-testing-support:3.8.2\")",
+    "api_gradle": "implementation(\"com.apollographql.apollo3:apollo-api:3.8.2\")"
+  },
+  "description": "Apollo Kotlin 3.8.2 runtime + testing-support APIs commonly needed when generating JVM unit tests that fake GraphQL transport (QueueTestNetworkTransport / MapTestNetworkTransport).",
+  "source_confidence": "docs-and-source-derived",
+  "official_references": [
+    "https://www.apollographql.com/docs/kotlin/v3",
+    "https://www.apollographql.com/docs/kotlin/v3/testing/mocking-graphql-responses",
+    "https://repo1.maven.org/maven2/com/apollographql/apollo3/apollo-runtime/3.8.2/",
+    "https://github.com/apollographql/apollo-kotlin/tree/v3.8.2/libraries/apollo-testing-support"
+  ],
+  "packages": [
+    {
+      "name": "com.apollographql.apollo3",
+      "purpose": "ApolloClient builder and operation execution entry points."
+    },
+    {
+      "name": "com.apollographql.apollo3.api",
+      "purpose": "ApolloRequest / ApolloResponse / Operation / Error model types."
+    },
+    {
+      "name": "com.apollographql.apollo3.network",
+      "purpose": "NetworkTransport interface and HTTP transport."
+    },
+    {
+      "name": "com.apollographql.apollo3.testing",
+      "purpose": "Queue/Map test transports and enqueue/register helpers (apollo-testing-support)."
+    },
+    {
+      "name": "com.apollographql.apollo3.exception",
+      "purpose": "ApolloException hierarchy for transport and GraphQL failures."
+    }
+  ],
+  "classes": [
+    {
+      "qualified_name": "com.apollographql.apollo3.ApolloClient",
+      "kind": "class",
+      "members": [
+        "fun query(query: Query<D>): ApolloCall<D>",
+        "fun mutation(mutation: Mutation<D>): ApolloCall<D>",
+        "fun subscription(subscription: Subscription<D>): ApolloCall<D>",
+        "fun close()",
+        "fun dispose()"
+      ],
+      "purpose": "Primary client. In unit tests, build with a test NetworkTransport; close/dispose in @After when test-owned."
+    },
+    {
+      "qualified_name": "com.apollographql.apollo3.ApolloClient.Builder",
+      "kind": "class",
+      "members": [
+        "fun networkTransport(networkTransport: NetworkTransport): Builder",
+        "fun serverUrl(serverUrl: String): Builder",
+        "fun addHttpHeader(name: String, value: String): Builder",
+        "fun build(): ApolloClient"
+      ],
+      "purpose": "Construct clients for tests via networkTransport(QueueTestNetworkTransport()) or MapTestNetworkTransport()."
+    },
+    {
+      "qualified_name": "com.apollographql.apollo3.ApolloCall",
+      "kind": "class",
+      "members": [
+        "suspend fun execute(): ApolloResponse<D>",
+        "fun toFlow(): Flow<ApolloResponse<D>>"
+      ],
+      "purpose": "Execute a single operation. Prefer execute() inside runTest { } for suspend JVM tests."
+    },
+    {
+      "qualified_name": "com.apollographql.apollo3.api.ApolloResponse",
+      "kind": "class",
+      "members": [
+        "val data: D?",
+        "val errors: List<Error>?",
+        "val exception: ApolloException?",
+        "val isLast: Boolean",
+        "fun dataAssertNoErrors: D"
+      ],
+      "purpose": "Parsed GraphQL response. Assert data / errors / exception rather than transport internals."
+    },
+    {
+      "qualified_name": "com.apollographql.apollo3.api.ApolloResponse.Builder",
+      "kind": "class",
+      "members": [
+        "constructor(operation: Operation<D>, requestUuid: Uuid, data: D?)",
+        "fun errors(errors: List<Error>?): Builder",
+        "fun exception(exception: ApolloException?): Builder",
+        "fun build(): ApolloResponse<D>"
+      ],
+      "purpose": "Build queued/mapped test responses when not using Data builders."
+    },
+    {
+      "qualified_name": "com.apollographql.apollo3.network.NetworkTransport",
+      "kind": "interface",
+      "members": [
+        "fun <D : Operation.Data> execute(request: ApolloRequest<D>): Flow<ApolloResponse<D>>",
+        "fun dispose()"
+      ],
+      "purpose": "Pluggable transport. Tests substitute QueueTestNetworkTransport or MapTestNetworkTransport."
+    },
+    {
+      "qualified_name": "com.apollographql.apollo3.testing.QueueTestNetworkTransport",
+      "kind": "class",
+      "members": [
+        "constructor()",
+        "fun <D : Operation.Data> execute(request: ApolloRequest<D>): Flow<ApolloResponse<D>>",
+        "fun dispose()"
+      ],
+      "purpose": "FIFO test transport from apollo-testing-support. Use with ApolloClient.enqueueTestResponse / enqueueTestNetworkError extensions."
+    },
+    {
+      "qualified_name": "com.apollographql.apollo3.testing.MapTestNetworkTransport",
+      "kind": "class",
+      "members": [
+        "constructor()",
+        "fun <D : Operation.Data> execute(request: ApolloRequest<D>): Flow<ApolloResponse<D>>",
+        "fun dispose()"
+      ],
+      "purpose": "Operation-keyed test transport. Use with registerTestResponse / registerTestNetworkError."
+    },
+    {
+      "qualified_name": "com.apollographql.apollo3.exception.ApolloException",
+      "kind": "open class",
+      "members": [
+        "open val message: String?",
+        "open val cause: Throwable?"
+      ],
+      "purpose": "Base Apollo failure type."
+    },
+    {
+      "qualified_name": "com.apollographql.apollo3.exception.ApolloNetworkException",
+      "kind": "class",
+      "members": [
+        "constructor(message: String? = null, platformCause: Any? = null)"
+      ],
+      "purpose": "Thrown for queued network errors from QueueTestNetworkTransport / registerTestNetworkError."
+    },
+    {
+      "qualified_name": "com.apollographql.apollo3.exception.ApolloHttpException",
+      "kind": "class",
+      "members": [
+        "val statusCode: Int",
+        "val headers: List<HttpHeader>",
+        "val body: BufferedSource?",
+        "val message: String?"
+      ],
+      "purpose": "HTTP-layer failure. Prefer enqueue/register network helpers over constructing with guessed ctor args."
+    }
+  ],
+  "functions": [
+    {
+      "name": "enqueueTestResponse",
+      "kind": "Kotlin extension function",
+      "signature_patterns": [
+        "fun <D : Operation.Data> ApolloClient.enqueueTestResponse(operation: Operation<D>, data: D? = null, errors: List<Error>? = null)",
+        "fun <D : Operation.Data> ApolloClient.enqueueTestResponse(response: ApolloResponse<D>)"
+      ],
+      "purpose": "Queue a successful/GraphQL-error response on a client using QueueTestNetworkTransport."
+    },
+    {
+      "name": "enqueueTestNetworkError",
+      "kind": "Kotlin extension function",
+      "signature_patterns": [
+        "fun ApolloClient.enqueueTestNetworkError()"
+      ],
+      "purpose": "Queue a transport-level ApolloNetworkException for the next execute()."
+    },
+    {
+      "name": "registerTestResponse",
+      "kind": "Kotlin extension function",
+      "signature_patterns": [
+        "fun <D : Operation.Data> ApolloClient.registerTestResponse(operation: Operation<D>, data: D? = null, errors: List<Error>? = null)",
+        "fun <D : Operation.Data> ApolloClient.registerTestResponse(operation: Operation<D>, response: ApolloResponse<D>)"
+      ],
+      "purpose": "Map an operation to a fixed response on MapTestNetworkTransport."
+    },
+    {
+      "name": "registerTestNetworkError",
+      "kind": "Kotlin extension function",
+      "signature_patterns": [
+        "fun <D : Operation.Data> ApolloClient.registerTestNetworkError(operation: Operation<D>)"
+      ],
+      "purpose": "Map an operation to a network error on MapTestNetworkTransport."
+    }
+  ],
+  "rag_usage_hints": [
+    "Apollo Kotlin 3.8.2 uses group com.apollographql.apollo3 (not com.apollographql.apollo).",
+    "Prefer ApolloClient.Builder().networkTransport(QueueTestNetworkTransport()).build() for ordered JVM unit tests.",
+    "Call client.enqueueTestResponse(operation, data) before CUT execute(); use enqueueTestNetworkError() for transport failures.",
+    "Do not stub ApolloClient.query()/mutation() with Mockito thenThrow \u2014 enqueue on the test transport instead.",
+    "Suspend execute() should run inside kotlinx.coroutines.test runTest { }.",
+    "Generated Operation types come from SOURCE (e.g. your.app.api); never invent Query/Mutation classes or Read build/generated.",
+    "If the module already provides harness wrappers (mockApollo, QueueNetworkTransport.enqueueThrow, apolloHttp), prefer those only when present in-module; otherwise use official apollo-testing-support APIs.",
+    "Tear down with client.close() or client.dispose() in @After when the client is test-owned."
+  ],
+  "test_generation_capabilities": [
+    {
+      "capability": "apollo3_queue_test_transport",
+      "status": "VERIFIED",
+      "apis": [
+        "QueueTestNetworkTransport()",
+        "ApolloClient.Builder().networkTransport(...).build()",
+        "ApolloClient.enqueueTestResponse(operation, data, errors)",
+        "ApolloClient.enqueueTestNetworkError()"
+      ],
+      "notes": "Confirmed against apollo-kotlin v3.8.2 testing-support sources and handler tests."
+    },
+    {
+      "capability": "apollo3_map_test_transport",
+      "status": "VERIFIED",
+      "apis": [
+        "MapTestNetworkTransport()",
+        "ApolloClient.registerTestResponse(operation, data, errors)",
+        "ApolloClient.registerTestNetworkError(operation)"
+      ],
+      "notes": "Use when the same operation may be executed multiple times with a stable fixture."
+    }
+  ],
+  "local_exhaustive_extractor": false,
+  "note": "Hand-authored index for UnitTest_gen prompts. Focused on JVM unit-test fakes for Apollo Kotlin 3.8.2; not a full API dump of apollo-runtime."
+}

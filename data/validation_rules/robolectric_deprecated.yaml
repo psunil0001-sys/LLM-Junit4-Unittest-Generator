@@ -9,6 +9,9 @@ rules:
       test_not: NetworkInfo.DetailedState
     repair: deprecated_robolectric_api
 
+  # Kept intentional Robolectric 3.x removals for major >= 4.
+  # Note: getNextStartedActivity() is the supported 4.x API (see repair intent) and is NOT matched here.
+  # getNextStartedIntent(s) is the obsolete name we still flag.
   - when:
       test_any:
         - org.robolectric.ShadowDialog

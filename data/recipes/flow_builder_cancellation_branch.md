@@ -98,5 +98,5 @@ fun flowEmit_exceptionContinuation() = runTest {
 
 ## Evidence
 
-On `TripsRepoImpl` emit lines, happy-path-only was ~25% branch (cb=1/4). After cancel +
+On Flow builder emit lines, happy-path-only was ~25% branch (cb=1/4). After cancel +
 slow-collector + exception tests: ~75% branch (cb=3/4). Remaining `mb=1` per line → residual.

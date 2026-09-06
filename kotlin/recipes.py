@@ -80,7 +80,7 @@ _API_CATEGORY_TRIGGERS: dict[str, str] = {
     "hilt_service": "hilt_android_testing_2_49_api_index.json",
     "room": "room_testing_api_index.json",
     "osmdroid": "osmdroid_api_index.json",
-    "apollo": "apollo_3_8_2_api_index.json",
+    "apollo": "apollo_runtime_5_1_0_api_index.json",
     "coroutines_flow": "kotlinx_coroutines_test_1_7_3_api_index.json",
     "viewmodel": "kotlinx_coroutines_test_1_7_3_api_index.json",
     "android_navigation": "navigation_testing_2_8_api_index.json",
@@ -120,7 +120,7 @@ _API_LIBRARY_TRIGGERS: tuple[tuple[tuple[str, ...], str], ...] = (
     (("car.ui", "CarUi", "com.android.car.ui"), "car_ui_lib_2_6_0_api_index.json"),
     (("TestNavHostController", "androidx.navigation.testing", "setViewNavController"), "navigation_testing_2_8_api_index.json"),
     (("InstantTaskExecutorRule", "LiveData", "androidx.arch.core"), "arch_core_testing_2_2_api_index.json"),
-    (("apollographql", "ApolloClient", "ApolloHttpException", "NetworkTransport"), "apollo_3_8_2_api_index.json"),
+    (("apollographql", "ApolloClient", "ApolloHttpException", "NetworkTransport"), "apollo_runtime_5_1_0_api_index.json"),
     (("androidx.room", "@Dao", "@Database", "Room.inMemoryDatabaseBuilder", "Room.databaseBuilder"), "room_testing_api_index.json"),
     (("org.osmdroid", "osmdroid", "IMapController"), "osmdroid_api_index.json"),
 )
@@ -137,7 +137,7 @@ _FQCN_PREFIX_DOCS: tuple[tuple[str, str], ...] = (
     ("androidx.navigation.testing", "navigation_testing_2_8_api_index.json"),
     ("androidx.navigation", "navigation_testing_2_8_api_index.json"),
     ("androidx.arch.core", "arch_core_testing_2_2_api_index.json"),
-    ("com.apollographql.", "apollo_3_8_2_api_index.json"),
+    ("com.apollographql.", "apollo_runtime_5_1_0_api_index.json"),
     ("kotlinx.coroutines", "kotlinx_coroutines_test_1_7_3_api_index.json"),
     ("org.mockito", "mockito_kotlin_5_2_1_api_index.json"),
     ("io.mockk", "mockk_1_13_12_api_index.json"),
@@ -358,7 +358,7 @@ _RECIPE_LABELS: dict[str, str] = {
     "android_object_singleton.md": "Kotlin object Android seam",
     "worker_service_receiver.md": "Service/Receiver unit host",
     "permissions_activity_result.md": "Permissions / ActivityResult",
-    "apollo_client_network_transport.md": "Apollo QueueNetworkTransport harness",
+    "apollo_client_network_transport.md": "Apollo 5 QueueTestNetworkTransport harness",
     "room_in_memory_dao.md": "Room in-memory DAO",
     "osmdroid_mapview.md": "osmdroid MapView / IMapController",
     "flow_builder_cancellation_branch.md": "Flow emit cancel/exception branch probes",
@@ -816,6 +816,7 @@ def format_fix_recipe_context(
         or "com.apollographql" in hay
         or "ApolloHttpException" in hay
         or "apollo3" in hay.lower()
+        or "com.apollographql.apollo" in hay
     )
     if primary is None and not apollo_cut:
         return ""

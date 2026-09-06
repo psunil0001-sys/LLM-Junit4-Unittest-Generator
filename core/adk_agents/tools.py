@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+import shlex
 import subprocess
 from pathlib import Path
 
@@ -14,10 +15,12 @@ from UnitTest_gen.core.hooks import (
     clear_read_once_path,
     decide_bash_input,
     decide_edit_path,
+    decide_path_confinement,
     decide_read_once,
     decide_read_path,
     decide_write_path,
     extract_paths_from_tool_output,
+    project_root_dir,
     record_read_failure,
     register_discovery_hits,
 )
@@ -53,23 +56,42 @@ def Read(file_path: str) -> str:
     return text
 
 
+_SHELL_META = re.compile(r"[|&;<>`$(){}]|\n")
+
+
+def _agent_bash_cwd() -> str:
+    """Confine Bash cwd to project_root (TESTGEN_AGENT_CWD) when known."""
+    project = project_root_dir()
+    if project:
+        return project
+    return os.environ.get("TESTGEN_AGENT_CWD") or os.getcwd()
+
+
 def Bash(command: str, description: str = "") -> str:
-    """Run a local shell command (ls/cat/python3/find/grep/./gradlew). No network commands."""
+    """Run an allowlisted local command (./gradlew, ls/find/cat/grep, ...). Policy via hooks."""
     _ = description
     decision = decide_bash_input(command)
     if decision.permission != "allow":
         return f"Error: {decision.reason or 'Bash denied'}"
-    cwd = os.environ.get("TESTGEN_AGENT_CWD") or os.getcwd()
+    cwd = _agent_bash_cwd()
+    conf = decide_path_confinement(cwd)
+    if conf is not None and conf.permission == "deny":
+        return f"Error: Bash cwd denied: {conf.reason}"
+    run_kwargs = dict(cwd=cwd, capture_output=True, text=True, timeout=900, check=False)
     try:
-        completed = subprocess.run(
-            command,
-            shell=True,
-            cwd=cwd,
-            capture_output=True,
-            text=True,
-            timeout=900,
-            check=False,
-        )
+        # Prefer argv execution when the command has no shell metacharacters.
+        use_shell = bool(_SHELL_META.search(command))
+        if not use_shell:
+            try:
+                argv = shlex.split(command)
+            except ValueError:
+                argv = []
+            if argv:
+                completed = subprocess.run(argv, shell=False, **run_kwargs)
+            else:
+                completed = subprocess.run(command, shell=True, **run_kwargs)
+        else:
+            completed = subprocess.run(command, shell=True, **run_kwargs)
     except subprocess.TimeoutExpired:
         return "Error: Bash command timed out"
     except OSError as exc:
@@ -77,7 +99,6 @@ def Bash(command: str, description: str = "") -> str:
     out = (completed.stdout or "") + (("\n" + completed.stderr) if completed.stderr else "")
     if completed.returncode != 0 and not out.strip():
         return f"Error: exit {completed.returncode}"
-    # Register absolute file paths from find/grep/cat so later Reads clear basename poison.
     paths = extract_paths_from_tool_output("Bash", out)
     if paths:
         register_discovery_hits(paths, tool_name="Bash")
@@ -124,7 +145,10 @@ def Edit(file_path: str, old_string: str, new_string: str) -> str:
 
 def Glob(pattern: str, path: str = "") -> str:
     """List files matching a glob pattern under path (default: owning module or cwd)."""
-    root = (path or os.environ.get("TESTGEN_OWNING_MODULE_DIR") or os.getcwd()).strip()
+    root = (path or os.environ.get("TESTGEN_OWNING_MODULE_DIR") or project_root_dir() or os.getcwd()).strip()
+    conf = decide_path_confinement(root)
+    if conf is not None and conf.permission == "deny":
+        return f"Error: {conf.reason or 'Glob path denied'}"
     base = Path(root)
     if not base.is_dir():
         return f"Error: not a directory: {root}"
@@ -139,7 +163,10 @@ def Glob(pattern: str, path: str = "") -> str:
 
 def Grep(pattern: str, path: str = "", glob: str = "") -> str:
     """Search file contents with a Python regex (scoped; prefer owning module)."""
-    root = (path or os.environ.get("TESTGEN_OWNING_MODULE_DIR") or os.getcwd()).strip()
+    root = (path or os.environ.get("TESTGEN_OWNING_MODULE_DIR") or project_root_dir() or os.getcwd()).strip()
+    conf = decide_path_confinement(root)
+    if conf is not None and conf.permission == "deny":
+        return f"Error: {conf.reason or 'Grep path denied'}"
     base = Path(root)
     if not base.exists():
         return f"Error: path not found: {root}"

@@ -12,14 +12,14 @@ triggers: [hilt_fragment, android_fragment, android_navigation, android_ui]
 - `@get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)`; `hiltRule.inject()` in `@Before`.
 - `@BindValue` / `@TestInstallIn` for every SOURCE `@Inject` field the fragment (or its `@HiltViewModel`) reads.
 - **Shared harness (`:testsupport`)** — prefer these over per-module copies:
-  - Runner: 
-  - Toolbar-only host: `HiltCarUiTestActivity`
-  - `MainActivityDelegate` + drawer host: `HiltDelegateActivity` (`fragmentContainerId` for `commitNow`)
+  - Runner: `com.HiltTestRunner`
+  - Toolbar-only host: `HiltToolbarHostActivity`
+  - `HostDrawerActivity` + drawer host: `HiltContainerHostActivity` (`fragmentContainerId` for `commitNow`)
   - Non-delegate host (negative `onAttach`): `PlainHiltActivity`
-  - Theme: `@style/HiltCarUiTheme` (from testsupport; parent `AppTheme`)
-- **Tier A** (attach / layout / shared ViewModels): `ActivityScenario.launch(HiltDelegateActivity::class.java)` or `HiltCarUiTestActivity` then
+  - Theme: `@style/HiltHostTheme` (from testsupport; parent `AppTheme`)
+- **Tier A** (attach / layout / shared ViewModels): `ActivityScenario.launch(HiltContainerHostActivity::class.java)` or `HiltToolbarHostActivity` then
   `supportFragmentManager.commitNow { add(activity.fragmentContainerId /* or android.R.id.content */, CutFragment(), tag) }`.
-- **Tier B** (real NavHost / deep-link destinations): module-local `HiltNavTestActivity` + `hilt_nav_test_graph` when the CUT needs graph destinations. If only `findNavController().navigate/popBackStack` is required and no graph destinations are under test, Tier A + `Navigation.setViewNavController(fragment.requireView(), mockk(relaxed = true))` is enough.
+- **Tier B** (real NavHost / deep-link destinations): module-local `HiltNavHostActivity` + `hilt_nav_test_graph` when the CUT needs graph destinations. If only `findNavController().navigate/popBackStack` is required and no graph destinations are under test, Tier A + `Navigation.setViewNavController(fragment.requireView(), mockk(relaxed = true))` is enough.
 - Consumer androidTest manifest: `android:name="dagger.hilt.android.testing.HiltTestApplication"` with `tools:replace`; activities merge from `:testsupport` (plus any module-local NavHost activity).
 - Assert public surface: Espresso `onView(...)` for layout `@+id/*`; collaborator effects via `verify { @BindValue mock }`. Prefer not reading private fragment fields; when CarUi adapters expose no Espresso-friendly children, assert via adapter public API on the main thread inside `onActivity`.
 
@@ -31,15 +31,15 @@ Always for `@AndroidEntryPoint` Fragment (or CarUi toolbar fragments):
 
 - `build.gradle.kts` `defaultConfig.testInstrumentationRunner = "com.HiltTestRunner"`
 - androidTest `AndroidManifest.xml`:
-  `android:name="dagger.hilt.android.testing.HiltTestApplication"` (+ optional `android:theme="@style/HiltCarUiTheme"`).
+  `android:name="dagger.hilt.android.testing.HiltTestApplication"` (+ optional `android:theme="@style/HiltHostTheme"`).
 - Deps: `hilt-android-testing:2.49`, `espresso-core`, `androidx.test.ext:junit`, `androidx.test:runner`, `mockk-android`. Apply `gradle/testgen-coverage.gradle` (pulls `:testsupport` + META-INF excludes).
 
 Only if SOURCE needs it:
 
-- `findNavController` / `NavDeepLinkRequest` with real destinations: module `HiltNavTestActivity` + `hilt_nav_test_activity.xml` (`@+id/nav_host_fragment`). Activity **must** `findViewById` the NavHost after `setContentView`.
+- `findNavController` / `NavDeepLinkRequest` with real destinations: module `HiltNavHostActivity` + `hilt_nav_test_activity.xml` (`@+id/nav_host_fragment`). Activity **must** `findViewById` the NavHost after `setContentView`.
 - Library modules: androidTest layouts/ids are on ``com.<module>.test.R``, **not** production `R`. Using production `R.layout.hilt_nav_test_activity` → `Unresolved reference` at compile.
 - `hilt_nav_test_graph` startDestination = CUT; stub dest per URI when SOURCE navigates to undeclared deep links.
-- `onAttach` throws unless `MainActivityDelegate`: `PlainHiltActivity`.
+- `onAttach` throws unless `HostDrawerActivity`: `PlainHiltActivity`.
 - `@BindValue` replacing `@Binds` types: `@UninstallModules(...)` **and** BindValue every remaining bind in those modules.
 - Platform / vehicle-property helpers used from SOURCE (`CarManager.getDistance*`, `LocationUtil.getCurrentLocation`, similar): **`mockkObject` / `mockkStatic` on instrumented** — do not call real `CarPropertyManager` / GPS in androidTest; AAOS emulators often lack the property or return null and crash.
 - Map / WebView / heavy native UI: stub location + repo flows so the fragment reaches RESUMED; assert toolbar/loading/zoom controls that are layout ids.
@@ -47,7 +47,7 @@ Only if SOURCE needs it:
 - `AlertDialogBuilder` + dialog buttons: on AAOS emulators CarUi dialogs often never take
   window focus — do **not** rely on Espresso's default root (times out with
   `RootViewWithoutFocusException`). Walk `WindowManagerGlobal.mViews` and `performClick`
-  the matching `TextView` on the main thread (see `SettingFragmentInstrumentedTest`).
+  the matching `TextView` on the main thread (see the module dialog-root helper pattern).
 
 Never `@Config(application = HiltTestApplication::class)` on the **test class** — that is Robolectric/`src/test` only.
 
@@ -57,16 +57,16 @@ For each Hilt/`Fragment` CUT, aim to close these paths when present in SOURCE:
 
 | SOURCE path | Host | Assert |
 |---|---|---|
-| `onAttach` success (`MainActivityDelegate`) | `HiltDelegateActivity` | fragment added / `isAdded` |
+| `onAttach` success (`HostDrawerActivity`) | `HiltContainerHostActivity` | fragment added / `isAdded` |
 | `onAttach` failure (non-delegate) | `PlainHiltActivity` | Use `commitNow` + `assertThrows(IllegalArgumentException)` (Hilt inject runs in `super.onAttach` — bare `fragment.onAttach(activity)` NPEs). When SOURCE checks the delegate **after** `super.onAttach` and later uses null-delegate drawer/`!!` paths: inside the catch, `commitNow { remove(...) }` all FM fragments and `activity.finish()` before `ActivityScenario.close()`, and optionally `every { } just Runs` as a safety net. |
 | `onDetach` / `onDestroyView` | Tier A | remove fragment; `!isAdded`, `view == null` |
 | Layout inflation / observers / adapters | Tier A | Espresso on public `@+id/*`; month/list adapters update |
 | Shared `activityViewModels` seed | Tier A | set StateFlow/LiveData **before** `commitNow` |
-| `@HiltViewModel` via `activityViewModels()` (not only shared plain VMs) | Tier A (`HiltDelegateActivity` / any `@AndroidEntryPoint` host) | Host creates the VM; `@BindValue` must satisfy that VM’s inject graph. Do not assume `by viewModels()` fragment scope. |
+| `@HiltViewModel` via `activityViewModels()` (not only shared plain VMs) | Tier A (`HiltContainerHostActivity` / any `@AndroidEntryPoint` host) | Host creates the VM; `@BindValue` must satisfy that VM’s inject graph. Do not assume `by viewModels()` fragment scope. |
 | EditText / `TextWatcher` / button clicks | Tier A | Mutate and click **inside** `onActivity` (main thread). Assert error/char-count labels on public `@+id/*`. |
 | `findNavController` / dialog open | Tier B or ViewNavController | click; navigate/pop verified or dialog title |
 | Dialog positive/negative callbacks | Tier B | `verify { repo.method(...) }` on `@BindValue` |
-| `@Inject` / use-case side effects | Tier A/B | `verify { tripsRepo... }` / prefs |
+| `@Inject` / use-case side effects | Tier A/B | `verify { repo... }` / prefs |
 | `android:visibility="gone"` controls | Tier A/B | make `VISIBLE` then click, or document skip |
 
 ## MUST NOT
@@ -85,7 +85,7 @@ For each Hilt/`Fragment` CUT, aim to close these paths when present in SOURCE:
 1. Ensure `:testsupport` harness is on the classpath (`testgen-coverage.gradle`); set shared `HiltTestRunner` FQCN; thin consumer manifest.
 2. Imports: `@HiltAndroidTest`, `HiltAndroidRule`, `UninstallModules` when replacing `@Binds`, `ActivityScenario`, `commitNow`, `@BindValue`, `AndroidJUnit4`, Espresso, mockk.
 3. Rules + `@Before` inject (+ Firebase / CarManager / LocationUtil stubs when SOURCE uses them).
-4. Arrange mocks/fakes with `@BindValue`; seed shared ViewModels before attach when SOURCE collects flows in `onViewCreated`/`onCreateView`. When SOURCE uses `activityViewModels()` for a `@HiltViewModel`, the host Activity must be `@AndroidEntryPoint` (prefer `HiltDelegateActivity`) so Hilt can create that VM.
+4. Arrange mocks/fakes with `@BindValue`; seed shared ViewModels before attach when SOURCE collects flows in `onViewCreated`/`onCreateView`. When SOURCE uses `activityViewModels()` for a `@HiltViewModel`, the host Activity must be `@AndroidEntryPoint` (prefer `HiltContainerHostActivity`) so Hilt can create that VM.
 5. Act: Tier A → launch shared host, `commitNow` add fragment; Tier B → NavHost activity; drive to `RESUMED`; invoke public UI paths from plan. EditText/`TextWatcher` mutations and clicks must run on the main thread (`onActivity`).
 6. Assert Espresso / `verify { }` / lifecycle flags on the main thread (`onActivity`).
 
@@ -96,11 +96,11 @@ For each Hilt/`Fragment` CUT, aim to close these paths when present in SOURCE:
 ```kotlin
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
-@UninstallModules(PreferencesBindsModule::class, TripsDataModule.TripsBindsDataModule::class)
+@UninstallModules(PreferencesBindsModule::class, DataBindsModule::class)
 class CutInstrumentedTest {
   @get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)
   @BindValue @JvmField val userPreferencesRepository: UserPreferencesRepository = mockk(relaxed = true)
-  @BindValue @JvmField val tripsRepo: TripsRepo = mockk(relaxed = true)
+  @BindValue @JvmField val repository: CutRepository = mockk(relaxed = true)
 }
 ```
 
@@ -109,7 +109,7 @@ class CutInstrumentedTest {
 ```kotlin
 @Test
 fun fragment_reaches_delta_onDevice() {
-  ActivityScenario.launch(HiltDelegateActivity::class.java).use { scenario ->
+  ActivityScenario.launch(HiltContainerHostActivity::class.java).use { scenario ->
     scenario.onActivity { activity ->
       activity.supportFragmentManager.commitNow {
         add(activity.fragmentContainerId, CutFragment(), "cut")

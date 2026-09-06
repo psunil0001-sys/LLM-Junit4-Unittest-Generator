@@ -5,14 +5,14 @@ when_any_tags:
   - apollo
 rows:
   - when: "ApolloClient query/mutation/error path"
-    do: "QueueNetworkTransport / networkTransport enqueue; use generated Operation types from SOURCE"
+    do: "Apollo 5 QueueTestNetworkTransport + enqueueTestResponse / MapTestNetworkTransport; or project QueueNetworkTransport harness; use generated Operation types from SOURCE / your.app.api"
     do_not: "mock query thenThrow; invent Mutation/Query classes; stub Method objects; Read/import from build/generated; invent generated ctor args by browsing build/"
   - when: "invokeApiExt / ApiExtKt helpers"
     do: "Call the verified generated/extension name from api_doc / SOURCE imports (Read/Glob)"
     do_not: "ApiExtensionsKt vs ApiExtKt guesses; reflection catch-alls"
   - when: "HTTP / ApolloHttpException 401/404/4xx/5xx"
-    do: "transport.enqueueThrow(apolloHttp(statusCode)) — never raw ApolloHttpException(...)"
+    do: "client.enqueueTestNetworkError() or harness transport.enqueueThrow(apolloHttp(statusCode)) — never invent raw ApolloHttpException ctor args"
     do_not: "Real network; Mockito thenThrow on query mock; invented HTTP ctor params (code, request, response)"
   - when: "GraphQL errors / dataAssertNoErrors"
-    do: "transport.enqueueResponse(ApolloResponse.Builder(...).errors(...).build())"
+    do: "client.enqueueTestResponse(operation, data, errors) or ApolloResponse.Builder(...).errors(...).build()"
     do_not: "mock(Operation::class.java); construct kotlin.Error as GraphQL Error"

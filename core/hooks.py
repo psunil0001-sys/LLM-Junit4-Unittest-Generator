@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
+import shlex
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
 from UnitTest_gen.core.config import AGENT_PHASE_ENV, AGENT_PHASE_PLAN
+
+logger = logging.getLogger(__name__)
 
 SOURCE_IMPORTS_ENV = "TESTGEN_SOURCE_IMPORTS_JSON"
 READ_ONCE_ENV = "TESTGEN_READ_ONCE_JSON"
@@ -79,12 +83,31 @@ _MISSING_PLAN_DENY = (
     "or Edit it. Call Write once with this exact file_path and the full frontmatter + body."
 )
 _TEST_ROOT_MARKERS = ("/src/test/", "/src/androidTest/")
+# Network clients / package managers (gradlew is NOT listed).
 _NETWORK_CMD = re.compile(
-    r"\b(curl|wget|pip3?|npm|yarn|pnpm|ssh|scp|sftp|apt-get|dnf|yum|brew)\b"
+    r"\b(curl|wget|nc|ncat|netcat|socat|pip3?|npm|yarn|pnpm|ssh|scp|sftp|apt-get|dnf|yum|brew|aria2c|httpie|telnet)\b"
     r"|\bgit\s+(clone|fetch|pull|push)\b"
     r"|\bdocker\s+pull\b"
 )
-_ABS_PATH_IN_COMMAND = re.compile(r"(/(?:[^\s\"';&|]+))")
+_ABS_PATH_IN_COMMAND = re.compile(r"(?<![.\w])(/(?:[^\s\"';&|]+))")
+
+# Destructive / interpreter shells that must not run via the agent Bash tool.
+_DENY_BASH_RE = re.compile(
+    r"(?:^|[;&|`]|\$\(|\bsudo\b)\s*(?:rm\s+-(?:rf|fr)\b|rm\s+--recursive\b)"
+    r"|\b(python3?|perl|ruby|node|lua|php)\b"
+    r"|\b(bash|sh|zsh|ksh|dash)\b"
+    r"|\b(chmod|chown|mkfifo|dd)\b"
+)
+# Allowlist-first: first token of each pipeline/command segment (testgen local ops).
+_BASH_ALLOW_COMMANDS = frozenset({
+    "./gradlew", "gradlew",
+    "ls", "find", "cat", "head", "tail", "wc", "pwd", "echo", "which", "type",
+    "grep", "egrep", "fgrep", "rg", "ugrep",
+    "mkdir", "stat", "file", "basename", "dirname", "realpath", "readlink",
+    "true", "false", "printf", "sort", "uniq", "tr", "cut", "tee", "xargs",
+    "awk", "sed", "test", "[", "bfs",
+})
+_SHELL_SEGMENT_SPLIT = re.compile(r"(?:&&|\|\||;|\||`|\n)")
 
 @dataclass(frozen=True)
 class ReadHookDecision:
@@ -482,6 +505,9 @@ def decide_read_path(file_path: str, by_basename: dict[str, str] | None = None) 
                 "under the owning module (or SOURCE / TARGET paths in this prompt)."
             ),
         )
+    confined = decide_path_confinement(requested)
+    if confined is not None and confined.permission == "deny":
+        return confined
     name = Path(requested).name
     listed = (mapping or {}).get(name, "")
     listed_file = Path(listed) if listed else None
@@ -497,6 +523,9 @@ def decide_read_path(file_path: str, by_basename: dict[str, str] | None = None) 
         )
     if listed_ok:
         listed_abs = str(listed_file.resolve())
+        listed_conf = decide_path_confinement(listed_abs)
+        if listed_conf is not None and listed_conf.permission == "deny":
+            return listed_conf
         if requested_ok and str(Path(requested).resolve()) == listed_abs:
             return ReadHookDecision(permission="allow", file_path=requested)
         return ReadHookDecision(
@@ -590,8 +619,13 @@ def decide_plan_mutation_path(file_path: str) -> ReadHookDecision:
                     reason=_PLAN_MUTATION_DENY,
                 )
             return ReadHookDecision(permission="allow", file_path=str(resolved))
-        except Exception:
-            return ReadHookDecision(permission="allow", file_path=requested)
+        except Exception as exc:
+            logger.exception("decide_plan_mutation_path failed closed: %s", exc)
+            return ReadHookDecision(
+                permission="deny",
+                file_path=requested,
+                reason=f"{_PLAN_MUTATION_DENY} (policy error)",
+            )
     return decide_coder_mutation_path(requested)
 
 def decide_coder_mutation_path(file_path: str) -> ReadHookDecision:
@@ -750,14 +784,157 @@ def pretool_web_response(event: dict, by_basename: dict[str, str] | None = None)
         return None
     return _deny_pretool(_DENIED_TOOL_REASON)
 
-def classify_bash_command(command: str) -> str:
-    """Return empty | network | other. Only empty and network commands are denied."""
+
+def project_root_dir() -> str:
+    """Gradle/Android project root for the active agent session (TESTGEN_AGENT_CWD)."""
+    return (os.environ.get("TESTGEN_AGENT_CWD") or "").strip()
+
+
+def agent_allowed_roots() -> list[Path]:
+    """Roots agent Read/Glob/Grep/Bash absolute paths may touch."""
+    roots: list[Path] = [_unittest_gen_root()]
+    project = project_root_dir()
+    if project:
+        try:
+            roots.append(Path(project).resolve())
+        except OSError:
+            pass
+    module = owning_module_dir()
+    if module:
+        try:
+            roots.append(Path(module).resolve())
+        except OSError:
+            pass
+    # Deduplicate while preserving order
+    seen: set[str] = set()
+    out: list[Path] = []
+    for root in roots:
+        key = str(root)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(root)
+    return out
+
+
+def path_under_allowed_roots(file_path: str, roots: list[Path] | None = None) -> bool:
+    """True when resolved path is under project_root and/or UnitTest_gen package root."""
+    requested = (file_path or "").strip()
+    if not requested:
+        return False
+    try:
+        resolved = Path(requested).expanduser().resolve()
+    except OSError:
+        return False
+    # Hard denials for host sensitive locations (never readable via agent tools).
+    posix = resolved.as_posix()
+    try:
+        home_ssh = (Path.home().resolve() / ".ssh").as_posix()
+    except OSError:
+        home_ssh = ""
+    if posix.startswith("/etc/") or (home_ssh and (posix == home_ssh or posix.startswith(home_ssh + "/"))):
+        return False
+    allowed = roots if roots is not None else agent_allowed_roots()
+    if not allowed:
+        return False
+    for root in allowed:
+        try:
+            resolved.relative_to(root)
+            return True
+        except ValueError:
+            continue
+    return False
+
+
+def decide_path_confinement(file_path: str) -> ReadHookDecision | None:
+    """Deny paths outside project_root + UnitTest_gen; None means confinement OK / not applicable."""
+    requested = (file_path or "").strip()
+    if not requested:
+        return None
+    # Relative paths are resolved against project cwd later; confinement checked after resolve.
+    roots = agent_allowed_roots()
+    # If we have no project root yet, still confine to UnitTest_gen + owning module.
+    try:
+        path = Path(requested).expanduser()
+        if not path.is_absolute():
+            base = project_root_dir() or os.getcwd()
+            path = Path(base) / path
+        resolved = path.resolve()
+    except OSError:
+        return ReadHookDecision(
+            permission="deny",
+            file_path=requested,
+            reason="Path could not be resolved for sandbox confinement.",
+        )
+    if path_under_allowed_roots(str(resolved), roots):
+        return None
+    return ReadHookDecision(
+        permission="deny",
+        file_path=requested,
+        reason=(
+            f"Path outside allowed roots (project + UnitTest_gen): {resolved}. "
+            "Read/Glob/Grep are confined to the Android project and generator package."
+        ),
+    )
+
+
+def _bash_segment_command_name(segment: str) -> str:
+    seg = (segment or "").strip()
+    if not seg:
+        return ""
+    # Strip leading env assignments: FOO=bar cmd
+    while True:
+        try:
+            tokens = shlex.split(seg)
+        except ValueError:
+            tokens = seg.split()
+        if not tokens:
+            return ""
+        if "=" in tokens[0] and not tokens[0].startswith("=") and tokens[0][0].isalnum():
+            # drop env assignment and retry
+            # rebuild without first token
+            try:
+                # find first token end in original
+                rest = seg.strip()
+                # naive: remove first whitespace-separated token
+                parts = rest.split(None, 1)
+                seg = parts[1] if len(parts) > 1 else ""
+                continue
+            except Exception:
+                return tokens[0]
+        return tokens[0]
+
+
+def _bash_segments(command: str) -> list[str]:
     cmd = (command or "").strip()
     if not cmd:
-        return "empty"
-    if _NETWORK_CMD.search(cmd):
-        return "network"
-    return "other"
+        return []
+    parts = _SHELL_SEGMENT_SPLIT.split(cmd)
+    return [p.strip() for p in parts if p and p.strip()]
+
+
+def _mkdir_segment_ok(segment: str) -> bool:
+    """Allow mkdir -p under project roots only."""
+    try:
+        tokens = shlex.split(segment)
+    except ValueError:
+        tokens = segment.split()
+    if not tokens or tokens[0] != "mkdir":
+        return False
+    args = tokens[1:]
+    if not args:
+        return False
+    # Require -p (parents) for agent mkdir; reject other flags like -m with suspicious modes later
+    if "-p" not in args and "--parents" not in args:
+        return False
+    paths = [a for a in args if not a.startswith("-")]
+    if not paths:
+        return False
+    for raw in paths:
+        conf = decide_path_confinement(raw)
+        if conf is not None and conf.permission == "deny":
+            return False
+    return True
 
 
 def extract_bash_search_roots(command: str) -> list[str]:
@@ -775,12 +952,26 @@ def extract_bash_search_roots(command: str) -> list[str]:
         roots.append(candidate)
     return roots
 
-def decide_bash_input(command: str) -> ReadHookDecision:
-    """Allow any local Bash command; deny empty commands and network commands.
 
-    Agents are local-only: curl/wget/pip/npm/ssh/scp/… and git clone|fetch|pull|push
-    are denied. Everything else (ls, cat, python3, find/grep, ./gradlew incl. clean)
-    is allowed.
+def classify_bash_command(command: str) -> str:
+    """Return empty | network | denied | other for policy layering."""
+    cmd = (command or "").strip()
+    if not cmd:
+        return "empty"
+    if _NETWORK_CMD.search(cmd):
+        return "network"
+    if _DENY_BASH_RE.search(cmd):
+        return "denied"
+    return "other"
+
+
+def decide_bash_input(command: str) -> ReadHookDecision:
+    """Allowlist-first Bash policy for legitimate testgen commands.
+
+    Allows: ./gradlew|gradlew (dependency download OK), ls/find/cat/head/tail/wc/pwd/echo/which,
+    grep/rg, mkdir -p under project roots. Denies network clients, recursive deletes, and
+    arbitrary interpreters/shells. Absolute path operands must stay under project_root +
+    UnitTest_gen when a project root is known.
     """
     cmd = (command or "").strip()
     kind = classify_bash_command(cmd)
@@ -795,13 +986,66 @@ def decide_bash_input(command: str) -> ReadHookDecision:
             permission="deny",
             file_path="",
             reason=(
-                "Bash denied: no network commands (curl/wget/pip/npm/ssh/scp/apt-get/"
-                "git clone|fetch|pull|push) — agents are local-only. "
-                "All other local commands (ls/cat/python3/find/grep/./gradlew) are allowed."
+                "Bash denied: network clients are blocked. "
+                "./gradlew is allowed (dependency download OK). Use local ls/find/cat/grep only."
             ),
         )
-    # other → allow; keep find/grep scoped to owning module when the discovery lock is active
-    if re.search(r"\b(find|bfs|grep|ugrep)\b", cmd) and is_glob_grep_locked():
+    if kind == "denied":
+        return ReadHookDecision(
+            permission="deny",
+            file_path="",
+            reason=(
+                "Bash denied: destructive or interpreter/shell commands are blocked. "
+                "Use allowlisted testgen commands only."
+            ),
+        )
+
+    segments = _bash_segments(cmd)
+    if not segments:
+        return ReadHookDecision(permission="deny", file_path="", reason="Bash command is empty.")
+
+    for segment in segments:
+        name = _bash_segment_command_name(segment)
+        if not name:
+            return ReadHookDecision(
+                permission="deny",
+                file_path=cmd,
+                reason="Bash denied: could not parse command segment.",
+            )
+        base = Path(name).name
+        allowed = name in _BASH_ALLOW_COMMANDS or base in _BASH_ALLOW_COMMANDS
+        if name.startswith("./") and name[2:] in _BASH_ALLOW_COMMANDS:
+            allowed = True
+        if not allowed:
+            return ReadHookDecision(
+                permission="deny",
+                file_path=cmd,
+                reason=(
+                    f"Bash denied: {name!r} is not on the testgen allowlist "
+                    "(./gradlew, ls, find, cat, head, tail, wc, pwd, echo, which, grep/rg, mkdir -p, ...)."
+                ),
+            )
+        if base == "mkdir" or name == "mkdir":
+            if not _mkdir_segment_ok(segment):
+                return ReadHookDecision(
+                    permission="deny",
+                    file_path=cmd,
+                    reason="Bash denied: mkdir only allowed as mkdir -p <path> under project roots.",
+                )
+
+    if project_root_dir():
+        for abs_path in extract_bash_search_roots(cmd):
+            if abs_path in {"/dev/null", "/dev/stdout", "/dev/stderr"}:
+                continue
+            conf = decide_path_confinement(abs_path)
+            if conf is not None and conf.permission == "deny":
+                return ReadHookDecision(
+                    permission="deny",
+                    file_path=cmd,
+                    reason=f"Bash denied: path outside project/UnitTest_gen roots: {abs_path}",
+                )
+
+    if re.search(r"\b(find|bfs|grep|ugrep|rg)\b", cmd) and is_glob_grep_locked():
         module = owning_module_dir()
         roots = extract_bash_search_roots(cmd)
         if module and roots and not all(_path_under_owning_module(root) for root in roots):
@@ -815,6 +1059,7 @@ def decide_bash_input(command: str) -> ReadHookDecision:
                 ),
             )
     return ReadHookDecision(permission="allow", file_path=cmd)
+
 
 def pretool_bash_response(event: dict, by_basename: dict[str, str] | None = None) -> dict | None:
     _ = by_basename

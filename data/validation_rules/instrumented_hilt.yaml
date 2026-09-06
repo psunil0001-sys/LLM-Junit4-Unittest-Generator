@@ -1,6 +1,13 @@
 rules:
+  # Require real Hilt markers / imports — bare @Inject alone is too noisy for non-Hilt androidTests.
   - when:
-      source_any: ['@AndroidEntryPoint', '@Inject', '@HiltWorker']
+      source_any:
+        - '@AndroidEntryPoint'
+        - '@HiltAndroidApp'
+        - '@HiltViewModel'
+        - '@HiltWorker'
+        - 'dagger.hilt'
+        - 'androidx.hilt'
       test_not: '@HiltAndroidTest'
     message: "instrumented_missing_hilt_annotation: Hilt CUT androidTests require @HiltAndroidTest on the test class."
 
@@ -24,8 +31,8 @@ rules:
 
   - when:
       test_contains_any: ['launchFragmentInContainer', 'FragmentScenario.launchInContainer', 'launchInContainer(']
-      test_not_contains_any: ['commitNow', 'HiltNavTestActivity']
-    message: "instrumented_bad_fragment_launch: use ActivityScenario.launch(HiltTestActivity) + commitNow or HiltNavTestActivity for NavHost; never launchInContainer."
+      test_not_contains_any: ['commitNow', 'HiltNavHostActivity']
+    message: "instrumented_bad_fragment_launch: use ActivityScenario.launch(HiltHostActivity) + commitNow or HiltNavHostActivity for NavHost; never launchInContainer."
 
   - when:
       test_contains: 'onAttach(mock<'
@@ -38,15 +45,15 @@ rules:
 
   - when:
       source_any: ['Fragment', 'DialogFragment']
-      test_contains_any: ['fragment._binding', 'fragment.binding', 'fragment.toolbar', 'fragment.mainActivityDelegate']
+      test_contains_any: ['fragment._binding', 'fragment.binding', 'fragment.toolbar', 'fragment.hostDrawerActivity']
     message: "instrumented_private_surface_assert: do not assert private fragment fields; use Espresso onView or @BindValue fake flags on test fields."
 
   - when:
       source_contains: 'findNavController'
       test_contains_any: ['performClick', 'R.id.next', 'R.id.skip']
-      test_contains: 'HiltTestActivity'
-      test_not_contains: 'HiltNavTestActivity'
-    message: "instrumented_nav_host_hint: navigation clicks should launch HiltNavTestActivity (NavHost), not HiltTestActivity + commitNow."
+      test_contains: 'HiltHostActivity'
+      test_not_contains: 'HiltNavHostActivity'
+    message: "instrumented_nav_host_hint: navigation clicks should launch HiltNavHostActivity (NavHost), not HiltHostActivity + commitNow."
 
   - when:
       source_contains_any: ['setAnalyticsConsent', 'clearAuthState']

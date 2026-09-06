@@ -3,13 +3,13 @@ id: carui_toolbar_host
 triggers: [carui_toolbar, carui_progress, carui_back_listener]
 ---
 
-# CarUi toolbar host — static stub + capture
+# Automotive toolbar host (car-ui-lib) — static stub + capture
 
 ## MUST
 
 - Static mock `CarUi` before production `requireToolbar`.
 - Stub returns a capturing/fake `ToolbarController` before the setup path runs.
-- Layouts that inflate `CarUiRecyclerViewImpl` need AAOS OEM API types on the **unit-test classpath**. Those types are compile-only / platform-provided and are **not** shipped inside `car-ui-lib` AAR for JVM tests. Copy minimal stubs from an existing module test (e.g. `feature/settings/.../RecyclerViewAttributesOEMV1.kt`, `LayoutStyleOEMV1.kt` under `src/test/java/com/android/car/ui/plugin/oemapis/recyclerview/`) — do **not** invent package layout or LayoutInflater factory hacks that change ViewBinding types.
+- Layouts that inflate `CarUiRecyclerViewImpl` need AAOS OEM API types on the **unit-test classpath**. Those types are compile-only / platform-provided and are **not** shipped inside `car-ui-lib` AAR for JVM tests. Copy minimal stubs from an existing module test under `path/to/module/src/test/java/com/android/car/ui/plugin/oemapis/recyclerview/` (e.g. `RecyclerViewAttributesOEMV1.kt`, `LayoutStyleOEMV1.kt`) — do **not** invent package layout or LayoutInflater factory hacks that change ViewBinding types.
 
 ## MUST NOT
 
