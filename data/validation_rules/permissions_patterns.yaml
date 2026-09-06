@@ -1,0 +1,15 @@
+rules:
+  - when:
+      test: 'Shadows\.grantPermissions\s*\('
+    message: >-
+      invalid_permissions_static_grant: Shadows.grantPermissions as a static does not exist.
+      Use Shadows.shadowOf(context).grantPermissions(...) / denyPermissions(...) on an instance
+      (usually ApplicationProvider.getApplicationContext()).
+
+  - when:
+      source_any:
+        - checkSelfPermission
+        - requestPermissions
+        - registerForActivityResult
+      test: 'Shadows\.grantPermissions\s*\('
+    repair: invalid_permissions_static_grant

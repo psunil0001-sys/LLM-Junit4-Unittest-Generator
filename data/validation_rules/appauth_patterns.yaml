@@ -1,0 +1,78 @@
+rules:
+  - when:
+      source_any:
+        - net.openid.appauth.AuthState
+        - AuthState
+        - createTokenRefreshRequest
+        - TokenResponse.Builder
+        - AuthorizationServiceConfiguration
+      test: '(?:net\.openid\.appauth\.)?AuthState\.Builder\s*\('
+    message: >-
+      AppAuth AuthState.Builder is not a verified API in this project.
+      Use AuthState().jsonSerializeString() for unauthorized storage paths, or inject a Mockito mock AuthState and stub public getters for authorized branches.
+
+  - when:
+      source_any:
+        - net.openid.appauth.AuthState
+        - AuthState
+        - createTokenRefreshRequest
+        - TokenResponse.Builder
+        - AuthorizationServiceConfiguration
+      test: 'AuthState::class\.java\.getDeclaredField\(\s*"idToken"\s*\)'
+    message: >-
+      Generated tests should use AppAuth AuthState public behavior for idToken.
+      Inject a Mockito mock AuthState into the source/repository private authState field and stub mockAuthState.idToken.
+
+  - when:
+      source_any:
+        - net.openid.appauth.AuthState
+        - AuthState
+        - createTokenRefreshRequest
+        - TokenResponse.Builder
+        - AuthorizationServiceConfiguration
+      test: 'AuthState\.jsonDeserialize\s*\('
+    message: >-
+      Generated tests should provide verified serialized AuthState values or inject a mocked AuthState into the source/repository private authState field.
+
+  - when:
+      source_any:
+        - net.openid.appauth.AuthState
+        - AuthState
+        - createTokenRefreshRequest
+        - TokenResponse.Builder
+        - AuthorizationServiceConfiguration
+      test: '\.update\s*\(\s*any\(\)\s*,\s*(?:any\(\)|isNull\(\))\s*\)'
+    message: >-
+      AppAuth AuthState.update is overloaded; untyped any() matchers cause overload ambiguity.
+      Use typed matchers for the exact overload (TokenResponse for refreshToken, AuthorizationResponse for login exchange)
+      or exercise update through a verified real AppAuth object when complete construction proof exists.
+
+  - when:
+      source_any:
+        - getAuthorizationRequestIntent
+      test: '\.getLoginIntent\s*\(\s*true\s*\)'
+      test_not_contains: ActivityNotFoundException
+    message: >-
+      AppAuth browser login intent path can throw ActivityNotFoundException under Robolectric
+      when no browser activity is registered. Prefer the webview branch or assert this local
+      exception while verifying discovery was called.
+
+  - when:
+      source_any:
+        - catch (e: Exception)
+        - clearAuthState()
+      test: 'assertFailsWith\s*<\s*IllegalStateException\s*>\s*\{[^}]*\.refreshToken\s*\('
+      flags: S
+    message: >-
+      refreshToken source catches auth exceptions and clears state instead of propagating.
+      Assert observable fallback behavior such as storage clear/no-crash instead of assertFailsWith.
+
+  - when:
+      source_any:
+        - catch (e: Exception)
+        - clearAuthState()
+      test: 'assertThrows\s*\([^)]*IllegalStateException[^)]*\)\s*\{[^}]*\.refreshToken\s*\('
+      flags: S
+    message: >-
+      refreshToken source catches auth exceptions and clears state instead of propagating.
+      Assert observable fallback behavior such as storage clear/no-crash instead of assertFailsWith.

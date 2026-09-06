@@ -1,0 +1,12 @@
+rules:
+  - when:
+      test: '\b(anyBoolean|anyByte|anyChar|anyDouble|anyFloat|anyInt|anyLong|anyShort)\s*\('
+    message: >-
+      Use typed Mockito-Kotlin primitive matchers such as any<Int>(), any<Boolean>(), or any<Long>();
+      do not import or call primitive helper matchers such as anyInt().
+
+  - when:
+      test: 'import\s+org\.mockito\.kotlin\.(anyBoolean|anyByte|anyChar|anyDouble|anyFloat|anyInt|anyLong|anyShort)\b'
+    message: >-
+      Use typed Mockito-Kotlin primitive matchers such as any<Int>(), any<Boolean>(), or any<Long>();
+      do not import or call primitive helper matchers such as anyInt().

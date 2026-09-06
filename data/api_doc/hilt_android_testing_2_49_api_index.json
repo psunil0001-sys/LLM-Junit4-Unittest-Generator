@@ -1,0 +1,159 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-07-08T11:31:52Z",
+  "name": "hilt-android-testing",
+  "coordinates": {
+    "group_id": "com.google.dagger",
+    "artifact_id": "hilt-android-testing",
+    "version": "2.49",
+    "gradle": "testImplementation(\"com.google.dagger:hilt-android-testing:2.49\") / androidTestImplementation(\"com.google.dagger:hilt-android-testing:2.49\")"
+  },
+  "description": "Hilt testing support APIs for Android/JUnit tests.",
+  "source_confidence": "high for main public testing annotations/rule; bytecode-exhaustive regeneration recommended using included recipe.",
+  "official_references": [
+    "https://repo1.maven.org/maven2/com/google/dagger/hilt-android-testing/2.49/",
+    "https://dagger.dev/hilt/testing.html",
+    "https://dagger.dev/api/latest/dagger/hilt/android/testing/package-summary.html"
+  ],
+  "packages": [
+    {
+      "name": "dagger.hilt.android.testing",
+      "purpose": "Hilt Android testing APIs."
+    },
+    {
+      "name": "dagger.hilt.android",
+      "purpose": "Includes EarlyEntryPoint used with Hilt test/application startup."
+    }
+  ],
+  "api": [
+    {
+      "qualified_name": "dagger.hilt.android.testing.HiltAndroidTest",
+      "kind": "annotation",
+      "targets": [
+        "TYPE/class"
+      ],
+      "purpose": "Marks an Android test class to use Hilt testing infrastructure."
+    },
+    {
+      "qualified_name": "dagger.hilt.android.testing.HiltAndroidRule",
+      "kind": "class",
+      "members": [
+        "constructor(testInstance: Any)",
+        "fun apply(base: Statement, description: Description): Statement",
+        "fun inject()"
+      ],
+      "purpose": "JUnit4 rule that performs Hilt component setup and injection for a test."
+    },
+    {
+      "qualified_name": "dagger.hilt.android.testing.HiltTestApplication",
+      "kind": "class",
+      "members": [
+        "extends android.app.Application / generated component manager integration"
+      ],
+      "purpose": "Default Application class for Hilt tests."
+    },
+    {
+      "qualified_name": "dagger.hilt.android.testing.CustomTestApplication",
+      "kind": "annotation",
+      "members": [
+        "value: KClass/Class<out Application>"
+      ],
+      "purpose": "Generate a custom Hilt test Application based on a supplied base Application."
+    },
+    {
+      "qualified_name": "dagger.hilt.android.testing.BindValue",
+      "kind": "annotation",
+      "targets": [
+        "FIELD"
+      ],
+      "purpose": "Bind a test field value into the Hilt component for that test."
+    },
+    {
+      "qualified_name": "dagger.hilt.android.testing.BindValueIntoSet",
+      "kind": "annotation",
+      "targets": [
+        "FIELD"
+      ],
+      "purpose": "Bind a test field value into a set multibinding."
+    },
+    {
+      "qualified_name": "dagger.hilt.android.testing.BindElementsIntoSet",
+      "kind": "annotation",
+      "targets": [
+        "FIELD"
+      ],
+      "purpose": "Bind all elements from a test field collection into a set multibinding."
+    },
+    {
+      "qualified_name": "dagger.hilt.android.testing.BindValueIntoMap",
+      "kind": "annotation",
+      "targets": [
+        "FIELD"
+      ],
+      "purpose": "Bind a test field value into a map multibinding; use with Dagger map key annotation."
+    },
+    {
+      "qualified_name": "dagger.hilt.android.testing.UninstallModules",
+      "kind": "annotation",
+      "targets": [
+        "TYPE/class"
+      ],
+      "members": [
+        "value: Class<?>[]"
+      ],
+      "purpose": "Remove production modules from a specific Hilt test."
+    },
+    {
+      "qualified_name": "dagger.hilt.testing.TestInstallIn",
+      "kind": "annotation",
+      "targets": [
+        "TYPE/module"
+      ],
+      "members": [
+        "components: Class<?>[]",
+        "replaces: Class<?>[]"
+      ],
+      "purpose": "Install a test module globally for tests, replacing production modules."
+    },
+    {
+      "qualified_name": "dagger.hilt.android.EarlyEntryPoint",
+      "kind": "annotation",
+      "targets": [
+        "TYPE/interface"
+      ],
+      "purpose": "Entry point for dependencies needed before normal Hilt injection, often in tests/Application startup."
+    },
+    {
+      "qualified_name": "dagger.hilt.android.testing.OnComponentReadyRunner",
+      "kind": "class/internal-public",
+      "members": [
+        "addListener(...) / component ready callback APIs"
+      ],
+      "purpose": "Infrastructure used by HiltAndroidRule/testing internals. Usually do not call directly."
+    }
+  ],
+  "rag_usage_hints": [
+    "For local/unit Robolectric Hilt tests, use @HiltAndroidTest plus @get:Rule val hiltRule = HiltAndroidRule(this), then call hiltRule.inject().",
+    "Use @UninstallModules for per-test replacement; prefer @TestInstallIn for shared test modules.",
+    "Use @BindValue for simple fake instance replacement directly from a test field.",
+    "Do not use FragmentScenario.launchFragmentInContainer with an @AndroidEntryPoint Fragment (host is not a Hilt Activity). Attach via an existing @AndroidEntryPoint Activity in the same module (Robolectric.buildActivity + FragmentTransaction.commitNow).",
+    "Remember annotation processing setup: kaptTest/kspTest with com.google.dagger:hilt-android-compiler:2.49."
+  ],
+  "local_exhaustive_extractor": {
+    "requires": [
+      "JDK 17+",
+      "Android build tools or unzip",
+      "curl",
+      "jar",
+      "javap"
+    ],
+    "commands": [
+      "curl -L -o hilt-android-testing-2.49.aar https://repo1.maven.org/maven2/com/google/dagger/hilt-android-testing/2.49/hilt-android-testing-2.49.aar",
+      "unzip -p hilt-android-testing-2.49.aar classes.jar > hilt-android-testing-2.49-classes.jar",
+      "jar tf hilt-android-testing-2.49-classes.jar | grep '\\.class$' | sed 's#/#.#g;s#\\.class$##' > classes.txt",
+      "while read c; do javap -classpath hilt-android-testing-2.49-classes.jar -public \"$c\"; done < classes.txt > hilt-android-testing-2.49-public-api.txt"
+    ],
+    "note": "For annotation members, javap -v can reveal retention/targets/defaults. Also inspect sources jar for documentation comments."
+  },
+  "note": "API index for local LLM/RAG use. Entries focus on public test-facing APIs and include a local extractor recipe to regenerate from official artifacts for bytecode-exhaustive coverage."
+}

@@ -1,0 +1,57 @@
+{
+  "schema_version": "1.0",
+  "library": "AndroidX Room testing",
+  "version": "2.6",
+  "purpose": "In-memory Room DAO JVM unit tests. Host the @Dao with Room.inMemoryDatabaseBuilder; do not mock the DAO when it is the CUT.",
+  "official_references": [
+    "https://developer.android.com/training/data-storage/room/testing-db",
+    "https://developer.android.com/reference/androidx/room/Room"
+  ],
+  "coordinates": {
+    "group_id": "androidx.room",
+    "artifact_id": "room-runtime",
+    "version": "2.6.1",
+    "gradle": "testImplementation(\"androidx.room:room-runtime:2.6.1\")"
+  },
+  "api_index": [
+    {
+      "qualified_name": "androidx.room.Room",
+      "kind": "class",
+      "purpose": "Builders for RoomDatabase. Unit tests use inMemoryDatabaseBuilder only.",
+      "members": [
+        "fun <T : RoomDatabase> inMemoryDatabaseBuilder(context: Context, klass: Class<T>): RoomDatabase.Builder<T>",
+        "fun <T : RoomDatabase> databaseBuilder(context: Context, klass: Class<T>, name: String): RoomDatabase.Builder<T>"
+      ]
+    },
+    {
+      "qualified_name": "androidx.room.RoomDatabase.Builder",
+      "kind": "class",
+      "purpose": "Configure and build. allowMainThreadQueries is required for JVM unit tests.",
+      "members": [
+        "fun allowMainThreadQueries(): Builder<T>",
+        "fun fallbackToDestructiveMigration(): Builder<T>",
+        "fun addCallback(callback: RoomDatabase.Callback): Builder<T>",
+        "fun build(): T"
+      ]
+    },
+    {
+      "qualified_name": "androidx.room.RoomDatabase",
+      "kind": "class",
+      "purpose": "Close in @After. Expose DAOs as abstract methods on the @Database class.",
+      "members": [
+        "fun close()",
+        "fun isOpen(): Boolean"
+      ]
+    },
+    {
+      "class": "Anti-patterns",
+      "purpose": "Avoid on-disk DB and mocking the DAO-under-test.",
+      "methods": [
+        "Room.databaseBuilder in unit tests — on-disk, flaky, not isolated",
+        "createFromAsset / createFromFile — not a unit seam",
+        "mock(CutDao) when CutDao is the class under test",
+        "Invent entity columns not on the @Entity"
+      ]
+    }
+  ]
+}

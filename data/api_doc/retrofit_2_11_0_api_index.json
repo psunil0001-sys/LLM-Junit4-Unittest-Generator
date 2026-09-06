@@ -1,0 +1,359 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-07-14T06:33:42Z",
+  "name": "retrofit",
+  "coordinates": {
+    "group_id": "com.squareup.retrofit2",
+    "artifact_id": "retrofit",
+    "version": "2.11.0",
+    "gradle": "implementation(\"com.squareup.retrofit2:retrofit:2.11.0\")"
+  },
+  "description": "A type-safe HTTP client for Android and the JVM.",
+  "source_confidence": "high for coordinates and curated public test-facing APIs; bytecode-exhaustive regeneration recommended using included recipe.",
+  "official_references": [
+    "https://repo1.maven.org/maven2/com/squareup/retrofit2/retrofit/2.11.0/",
+    "https://github.com/square/retrofit",
+    "https://javadoc.io/doc/com.squareup.retrofit2/retrofit/2.11.0/"
+  ],
+  "packages": [
+    {
+      "name": "retrofit2",
+      "purpose": "Core Retrofit runtime APIs including Response, Call, Callback, Retrofit, converters, call adapters, and HTTP exceptions."
+    },
+    {
+      "name": "retrofit2.http",
+      "purpose": "Annotations used to declare HTTP service methods and parameters."
+    }
+  ],
+  "classes": [
+    {
+      "qualified_name": "retrofit2.Response",
+      "kind": "final class",
+      "members": [
+        "static <T> Response<T> success(T body)",
+        "static <T> Response<T> success(int code, T body)",
+        "static <T> Response<T> success(T body, okhttp3.Headers headers)",
+        "static <T> Response<T> success(T body, okhttp3.Response rawResponse)",
+        "static <T> Response<T> error(int code, okhttp3.ResponseBody body)",
+        "static <T> Response<T> error(okhttp3.ResponseBody body, okhttp3.Response rawResponse)",
+        "okhttp3.Response raw()",
+        "int code()",
+        "String message()",
+        "okhttp3.Headers headers()",
+        "boolean isSuccessful()",
+        "T body()",
+        "okhttp3.ResponseBody errorBody()",
+        "String toString()"
+      ],
+      "purpose": "HTTP response wrapper containing the deserialized success body or raw error body. Primary API for constructing deterministic Retrofit responses in unit tests."
+    },
+    {
+      "qualified_name": "retrofit2.Call",
+      "kind": "interface",
+      "members": [
+        "Response<T> execute() throws java.io.IOException",
+        "void enqueue(Callback<T> callback)",
+        "boolean isExecuted()",
+        "void cancel()",
+        "boolean isCanceled()",
+        "Call<T> clone()",
+        "okhttp3.Request request()",
+        "okio.Timeout timeout()"
+      ],
+      "purpose": "Represents one HTTP request/response pair that can execute synchronously or asynchronously."
+    },
+    {
+      "qualified_name": "retrofit2.Callback",
+      "kind": "interface",
+      "members": [
+        "void onResponse(Call<T> call, Response<T> response)",
+        "void onFailure(Call<T> call, Throwable t)"
+      ],
+      "purpose": "Asynchronous callback for Retrofit Call execution."
+    },
+    {
+      "qualified_name": "retrofit2.HttpException",
+      "kind": "class",
+      "members": [
+        "constructor(Response<?> response)",
+        "int code()",
+        "String message()",
+        "Response<?> response()"
+      ],
+      "purpose": "Runtime exception representing a non-successful HTTP response."
+    },
+    {
+      "qualified_name": "retrofit2.Retrofit",
+      "kind": "final class",
+      "members": [
+        "<T> T create(Class<T> service)",
+        "okhttp3.Call.Factory callFactory()",
+        "okhttp3.HttpUrl baseUrl()",
+        "java.util.List<Converter.Factory> converterFactories()",
+        "java.util.List<CallAdapter.Factory> callAdapterFactories()",
+        "java.util.concurrent.Executor callbackExecutor()",
+        "<T> Converter<T, okhttp3.RequestBody> requestBodyConverter(java.lang.reflect.Type type, java.lang.annotation.Annotation[] parameterAnnotations, java.lang.annotation.Annotation[] methodAnnotations)",
+        "<T> Converter<okhttp3.ResponseBody, T> responseBodyConverter(java.lang.reflect.Type type, java.lang.annotation.Annotation[] annotations)",
+        "<T> Converter<T, String> stringConverter(java.lang.reflect.Type type, java.lang.annotation.Annotation[] annotations)",
+        "CallAdapter<?, ?> callAdapter(java.lang.reflect.Type returnType, java.lang.annotation.Annotation[] annotations)",
+        "Builder newBuilder()"
+      ],
+      "purpose": "Creates implementations of service interfaces and resolves converters and call adapters."
+    },
+    {
+      "qualified_name": "retrofit2.Retrofit.Builder",
+      "kind": "static final class",
+      "members": [
+        "constructor()",
+        "Builder client(okhttp3.OkHttpClient client)",
+        "Builder callFactory(okhttp3.Call.Factory factory)",
+        "Builder baseUrl(String baseUrl)",
+        "Builder baseUrl(java.net.URL baseUrl)",
+        "Builder baseUrl(okhttp3.HttpUrl baseUrl)",
+        "Builder addConverterFactory(Converter.Factory factory)",
+        "Builder addCallAdapterFactory(CallAdapter.Factory factory)",
+        "Builder callbackExecutor(java.util.concurrent.Executor executor)",
+        "Builder validateEagerly(boolean validateEagerly)",
+        "Retrofit build()"
+      ],
+      "purpose": "Builder for configuring and creating Retrofit instances."
+    },
+    {
+      "qualified_name": "retrofit2.Converter",
+      "kind": "interface",
+      "members": [
+        "T convert(F value) throws java.io.IOException"
+      ],
+      "purpose": "Converts objects between HTTP body/string representations and application types."
+    },
+    {
+      "qualified_name": "retrofit2.Converter.Factory",
+      "kind": "abstract static class",
+      "members": [
+        "Converter<okhttp3.ResponseBody, ?> responseBodyConverter(java.lang.reflect.Type type, java.lang.annotation.Annotation[] annotations, Retrofit retrofit)",
+        "Converter<?, okhttp3.RequestBody> requestBodyConverter(java.lang.reflect.Type type, java.lang.annotation.Annotation[] parameterAnnotations, java.lang.annotation.Annotation[] methodAnnotations, Retrofit retrofit)",
+        "Converter<?, String> stringConverter(java.lang.reflect.Type type, java.lang.annotation.Annotation[] annotations, Retrofit retrofit)"
+      ],
+      "purpose": "Factory extension point for request, response, and string converters."
+    },
+    {
+      "qualified_name": "retrofit2.CallAdapter",
+      "kind": "interface",
+      "members": [
+        "java.lang.reflect.Type responseType()",
+        "R adapt(Call<R> call)"
+      ],
+      "purpose": "Adapts a Retrofit Call into another execution abstraction."
+    },
+    {
+      "qualified_name": "retrofit2.CallAdapter.Factory",
+      "kind": "abstract static class",
+      "members": [
+        "CallAdapter<?, ?> get(java.lang.reflect.Type returnType, java.lang.annotation.Annotation[] annotations, Retrofit retrofit)"
+      ],
+      "purpose": "Factory extension point for call adapters."
+    },
+    {
+      "qualified_name": "retrofit2.Invocation",
+      "kind": "final class",
+      "members": [
+        "static Invocation of(java.lang.Class<?> service, Object instance, java.lang.reflect.Method method, java.util.List<?> arguments)",
+        "java.lang.Class<?> service()",
+        "Object instance()",
+        "java.lang.reflect.Method method()",
+        "java.util.List<?> arguments()",
+        "String toString()"
+      ],
+      "purpose": "Describes the Retrofit service invocation associated with a request."
+    }
+  ],
+  "functions": [],
+  "annotations": [
+    {
+      "qualified_name": "retrofit2.http.GET",
+      "target": "method",
+      "purpose": "Declare an HTTP GET request."
+    },
+    {
+      "qualified_name": "retrofit2.http.POST",
+      "target": "method",
+      "purpose": "Declare an HTTP POST request."
+    },
+    {
+      "qualified_name": "retrofit2.http.PUT",
+      "target": "method",
+      "purpose": "Declare an HTTP PUT request."
+    },
+    {
+      "qualified_name": "retrofit2.http.DELETE",
+      "target": "method",
+      "purpose": "Declare an HTTP DELETE request."
+    },
+    {
+      "qualified_name": "retrofit2.http.PATCH",
+      "target": "method",
+      "purpose": "Declare an HTTP PATCH request."
+    },
+    {
+      "qualified_name": "retrofit2.http.HEAD",
+      "target": "method",
+      "purpose": "Declare an HTTP HEAD request."
+    },
+    {
+      "qualified_name": "retrofit2.http.OPTIONS",
+      "target": "method",
+      "purpose": "Declare an HTTP OPTIONS request."
+    },
+    {
+      "qualified_name": "retrofit2.http.HTTP",
+      "target": "method",
+      "purpose": "Declare a custom HTTP request method."
+    },
+    {
+      "qualified_name": "retrofit2.http.Headers",
+      "target": "method",
+      "purpose": "Declare static request headers."
+    },
+    {
+      "qualified_name": "retrofit2.http.Streaming",
+      "target": "method",
+      "purpose": "Stream a response body instead of buffering it."
+    },
+    {
+      "qualified_name": "retrofit2.http.FormUrlEncoded",
+      "target": "method",
+      "purpose": "Declare form URL encoded request bodies."
+    },
+    {
+      "qualified_name": "retrofit2.http.Multipart",
+      "target": "method",
+      "purpose": "Declare multipart request bodies."
+    },
+    {
+      "qualified_name": "retrofit2.http.Url",
+      "target": "parameter",
+      "purpose": "Supply a dynamic request URL."
+    },
+    {
+      "qualified_name": "retrofit2.http.Path",
+      "target": "parameter",
+      "purpose": "Bind a method parameter to a URL path replacement."
+    },
+    {
+      "qualified_name": "retrofit2.http.Query",
+      "target": "parameter",
+      "purpose": "Add a query parameter."
+    },
+    {
+      "qualified_name": "retrofit2.http.QueryMap",
+      "target": "parameter",
+      "purpose": "Add query parameters from a map."
+    },
+    {
+      "qualified_name": "retrofit2.http.QueryName",
+      "target": "parameter",
+      "purpose": "Add a query parameter name without a value."
+    },
+    {
+      "qualified_name": "retrofit2.http.Header",
+      "target": "parameter",
+      "purpose": "Add or replace a request header."
+    },
+    {
+      "qualified_name": "retrofit2.http.HeaderMap",
+      "target": "parameter",
+      "purpose": "Add request headers from a map."
+    },
+    {
+      "qualified_name": "retrofit2.http.Body",
+      "target": "parameter",
+      "purpose": "Use an object as the request body."
+    },
+    {
+      "qualified_name": "retrofit2.http.Field",
+      "target": "parameter",
+      "purpose": "Add a form-encoded field."
+    },
+    {
+      "qualified_name": "retrofit2.http.FieldMap",
+      "target": "parameter",
+      "purpose": "Add form-encoded fields from a map."
+    },
+    {
+      "qualified_name": "retrofit2.http.Part",
+      "target": "parameter",
+      "purpose": "Add a multipart part."
+    },
+    {
+      "qualified_name": "retrofit2.http.PartMap",
+      "target": "parameter",
+      "purpose": "Add multipart parts from a map."
+    },
+    {
+      "qualified_name": "retrofit2.http.Tag",
+      "target": "parameter",
+      "purpose": "Attach an object tag to the underlying OkHttp request."
+    }
+  ],
+  "rag_usage_hints": [
+    "For deterministic unit-test success responses, prefer retrofit2.Response.success(body) when only the body matters.",
+    "Use Response.success(code, body) only with a successful HTTP status code.",
+    "Use Response.error(code, responseBody) for deterministic HTTP error responses; the code must be 400 or greater.",
+    "Response.body() may be null. Generated tests should respect the production method's null-body behavior.",
+    "Response.errorBody() is populated for error responses; Response.body() is the success body.",
+    "Do not mock retrofit2.Response when a real Response.success(...) or Response.error(...) fixture can be constructed with verified APIs.",
+    "Response.error(...) requires okhttp3.ResponseBody. Ensure the project has a version-compatible verified ResponseBody construction API before generating the fixture.",
+    "Retrofit service methods may be suspend functions and can return a body type directly or Response<T>; inspect the verified service declaration before choosing a test fixture shape."
+  ],
+  "test_generation_capabilities": [
+    {
+      "capability": "retrofit_success_response",
+      "status": "VERIFIED",
+      "apis": [
+        "retrofit2.Response.success(T body)",
+        "retrofit2.Response.success(int code, T body)",
+        "retrofit2.Response.success(T body, okhttp3.Headers headers)",
+        "retrofit2.Response.success(T body, okhttp3.Response rawResponse)"
+      ]
+    },
+    {
+      "capability": "retrofit_error_response",
+      "status": "VERIFIED_WITH_OKHTTP_FIXTURE_DEPENDENCY",
+      "apis": [
+        "retrofit2.Response.error(int code, okhttp3.ResponseBody body)",
+        "retrofit2.Response.error(okhttp3.ResponseBody body, okhttp3.Response rawResponse)"
+      ],
+      "requires": [
+        "verified okhttp3.ResponseBody construction API"
+      ]
+    },
+    {
+      "capability": "retrofit_response_inspection",
+      "status": "VERIFIED",
+      "apis": [
+        "retrofit2.Response.code()",
+        "retrofit2.Response.message()",
+        "retrofit2.Response.headers()",
+        "retrofit2.Response.isSuccessful()",
+        "retrofit2.Response.body()",
+        "retrofit2.Response.errorBody()",
+        "retrofit2.Response.raw()"
+      ]
+    }
+  ],
+  "local_exhaustive_extractor": {
+    "requires": [
+      "JDK 17+",
+      "curl",
+      "jar",
+      "javap"
+    ],
+    "commands": [
+      "curl -L -o retrofit-2.11.0.jar https://repo1.maven.org/maven2/com/squareup/retrofit2/retrofit/2.11.0/retrofit-2.11.0.jar",
+      "jar tf retrofit-2.11.0.jar | grep '\\\\.class$' | sed 's#/#.#g;s#\\\\.class$##' > classes.txt",
+      "while read c; do javap -classpath retrofit-2.11.0.jar -public \"$c\"; done < classes.txt > retrofit-2.11.0-public-api.txt"
+    ],
+    "note": "Parse the javap output into this JSON schema for bytecode-exhaustive coverage. Include transitive OkHttp API documents separately because Response.error(...) fixture construction depends on okhttp3.ResponseBody."
+  },
+  "note": "Curated API index for local LLM/RAG unit-test generation. It prioritizes public test-facing Retrofit APIs, especially retrofit2.Response success/error construction."
+}

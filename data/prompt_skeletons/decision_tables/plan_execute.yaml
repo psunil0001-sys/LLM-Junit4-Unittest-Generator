@@ -1,0 +1,23 @@
+id: plan_execute
+title: "EXECUTE-READY PLAN RULES"
+columns: [when, do, do_not]
+when_any_tags: []
+rows:
+  - when: "Every testable item / SCENARIO CHUNKING / ORDERED APPROACH"
+    do: "One testable frontmatter item = one scenario = one Section 3 TC row; tc_ids exactly one id; approach is YAML | numbered steps 1..N (imports/host → arrange/bind → stub → act → assert)"
+    do_not: "Pack unrelated paths into one approach; one-sentence-only approach; multiple TCs on one item; mega-items"
+  - when: "JUnit / suspend / CUT construction"
+    do: "JUnit4 only; wrap suspend in runTest; CUT construction: Kotlin object Type.method(...) vs constructor inject vs Hilt @Inject/@BindValue"
+    do_not: "JUnit5, MockitoExtension, @ExtendWith; invent DI for Kotlin object singletons"
+  - when: "LiveData vs coroutines"
+    do: "InstantTaskExecutorRule only when LiveData is under test"
+    do_not: "InstantTaskExecutorRule for coroutines-only"
+  - when: "JSON in Section 8 / fixture_hint"
+    do: "Complete valid escaped Kotlin string literals or JSONObject builders"
+    do_not: "Truncated/placeholder JSON"
+  - when: "Timber / Log"
+    do: "Assert prefs/repo/return values unless Timber/logging is the SUT"
+    do_not: "Do not plan Timber/Log verification as the main signal"
+  - when: "Sibling *Test.kt files"
+    do: "Reference-only; all new coverage goes in PIPELINE TARGET"
+    do_not: "Tell the coder to edit sibling JvmTest/RobolectricTest/other non-target Test.kt"

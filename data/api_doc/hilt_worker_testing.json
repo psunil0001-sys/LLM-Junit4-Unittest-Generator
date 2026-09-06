@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.0",
+  "library": "Hilt Worker unit testing",
+  "version": "1.0",
+  "purpose": "Playbook for @HiltWorker @AssistedInject CoroutineWorker doWork() JVM unit tests. WorkerParameters is mocked; do not construct it.",
+  "official_references": [
+    "https://developer.android.com/develop/background-work/background-tasks/testing/persistent/worker-impl",
+    "https://developer.android.com/reference/androidx/work/ListenableWorker.Result",
+    "https://developer.android.com/reference/androidx/work/WorkerParameters"
+  ],
+  "api_index": [
+    {
+      "qualified_name": "androidx.work.WorkerParameters",
+      "kind": "class",
+      "purpose": "Final WorkManager params object. For JVM unit tests, mock it (mockito-inline can mock finals). Do not construct or subclass. Stub inputData / runAttemptCount only if doWork reads them.",
+      "members": [
+        "val inputData: Data",
+        "val runAttemptCount: Int",
+        "val tags: Set<String>",
+        "mock<WorkerParameters>()",
+        "mockk<WorkerParameters>()"
+      ]
+    },
+    {
+      "qualified_name": "androidx.work.ListenableWorker.Result",
+      "kind": "class",
+      "purpose": "Nested return type of doWork(). There is no androidx.work.Result top-level type.",
+      "members": [
+        "fun success(): Result",
+        "fun success(outputData: Data): Result",
+        "fun retry(): Result",
+        "fun failure(): Result",
+        "fun failure(outputData: Data): Result"
+      ]
+    },
+    {
+      "qualified_name": "androidx.work.CoroutineWorker",
+      "kind": "class",
+      "purpose": "Suspend doWork() worker. Unit-test via @AssistedInject constructor: Worker(context, mockParams, ...mockedInjectDeps); runTest { doWork() }.",
+      "members": [
+        "constructor(appContext: Context, params: WorkerParameters)",
+        "suspend fun doWork(): ListenableWorker.Result",
+        "val applicationContext: Context"
+      ]
+    },
+    {
+      "qualified_name": "androidx.hilt.work.HiltWorker",
+      "kind": "annotation",
+      "purpose": "Marks a Worker for Hilt. Unit tests still construct the @AssistedInject constructor directly; do not use HiltWorkerFactory.",
+      "members": []
+    },
+    {
+      "class": "Direct @AssistedInject construction",
+      "purpose": "For doWork() unit tests, construct Worker(context, mockParams, ...mockedInjectDeps). Do NOT use HiltWorkerFactory or 2-arg constructor.",
+      "methods": [
+        "val params = mock<WorkerParameters>()",
+        "CutWorker(context, params, mockDep)",
+        "runTest { worker.doWork() }",
+        "ApplicationProvider.getApplicationContext<Context>() for Robolectric context",
+        "assertEquals(ListenableWorker.Result.success(), result)"
+      ]
+    },
+    {
+      "class": "Anti-patterns",
+      "purpose": "Avoid these in JVM unit tests. Google TestListenableWorkerBuilder requires androidx.work:work-testing (not on this test classpath) and still needs a custom WorkerFactory for @HiltWorker inject params.",
+      "methods": [
+        "CutWorker(context, params) — missing inject params triggers HiltWorkerFactory error",
+        "HiltWorkerFactory — only needed for WorkManager integration tests, not doWork() unit tests",
+        "@HiltAndroidTest — not required for direct constructor unit tests",
+        "Robolectric.buildWorkerParams() — does not exist",
+        "androidx.work.testing.TestListenableWorkerBuilder — needs work-testing artifact",
+        "TestWorkerBuilder — needs work-testing artifact",
+        "WorkerParameters.Factory / object : WorkerParameters — class is final",
+        "androidx.work.Result — use ListenableWorker.Result"
+      ]
+    },
+    {
+      "class": "Dependencies",
+      "purpose": "Typical testImplementation coords already on the module classpath. Do not add work-testing or hilt-android-testing for this path.",
+      "methods": [
+        "org.robolectric:robolectric",
+        "androidx.test:core",
+        "org.jetbrains.kotlinx:kotlinx-coroutines-test",
+        "org.mockito.kotlin:mockito-kotlin",
+        "org.mockito:mockito-inline"
+      ]
+    }
+  ]
+}

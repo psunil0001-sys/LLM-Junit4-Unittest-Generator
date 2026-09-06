@@ -1,0 +1,7 @@
+rules:
+  - when:
+      test: '@Test(?:\([^)]*\))?\s*\n\s*fun\s+`[^`]*\.[^`]*`\s*\('
+      flags: M
+    message: >-
+      JUnit test method names should use JVM-safe words even inside Kotlin backticks.
+      Use JVM-safe names such as bodyTripList instead of body.tripList.

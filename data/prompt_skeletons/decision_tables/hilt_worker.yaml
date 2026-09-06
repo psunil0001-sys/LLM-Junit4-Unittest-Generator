@@ -1,0 +1,12 @@
+id: hilt_worker
+title: "HILT @HiltWorker doWork()"
+columns: [when, do, do_not]
+when_any_tags:
+  - hilt_worker
+rows:
+  - when: "Unit-test CoroutineWorker.doWork()"
+    do: "mock/mockk WorkerParameters; construct Cut(context, params, mocked @AssistedInject deps); runTest { doWork() }; assert ListenableWorker.Result"
+    do_not: "HiltWorkerFactory; TestListenableWorkerBuilder; work-testing; buildWorkerParams; subclass WorkerParameters; androidx.work.Result"
+  - when: "doWork reads inputData / runAttemptCount"
+    do: "Stub those members on the mocked WorkerParameters only"
+    do_not: "Construct a real WorkerParameters"

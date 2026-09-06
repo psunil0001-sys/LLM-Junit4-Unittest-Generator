@@ -1,0 +1,293 @@
+{
+  "schema_version": "1.0",
+  "library": "Android Automotive Car UI Library",
+  "version": "2.6.0",
+  "generated_for": "LLM/RAG JUnit4 Android unit-test generation",
+  "coverage_note": "High-value index for com.android.car.ui:car-ui-lib:2.6.0 focused on CarUi.requireToolbar, ToolbarController.setMenuItems/registerBackListener/getProgressBar, and MenuItem.performClick fixtures. Signatures extracted via javap from the local 2.6.0 classes.jar.",
+  "verification_status": {
+    "artifact_and_version": "verified",
+    "package_namespace": "verified",
+    "high_value_api_index": "verified via javap against local car-ui-lib-2.6.0 classes.jar",
+    "fixture_recipes": "generation guidance aligned with verified public APIs"
+  },
+  "official_sources": {
+    "maven_coordinates": "com.android.car.ui:car-ui-lib:2.6.0"
+  },
+  "maven_coordinates": [
+    "com.android.car.ui:car-ui-lib:2.6.0"
+  ],
+  "package_prefixes": [
+    "com.android.car.ui.core",
+    "com.android.car.ui.toolbar",
+    "com.android.car.ui"
+  ],
+  "capability_categories": [
+    "CarUi toolbar installation",
+    "Toolbar menu item callbacks",
+    "Toolbar back listeners",
+    "Toolbar progress bar"
+  ],
+  "api_index": [
+    {
+      "class": "com.android.car.ui.core.CarUi",
+      "kind": "class",
+      "purpose": "Static entry points for Car UI toolbar, insets, and base layout installation used by Fragments/Activities.",
+      "high_value_methods": [
+        "static <T> T findCarUiComponentById(android.view.View, int)",
+        "static <T> T requireCarUiComponentById(android.view.View, int)",
+        "static com.android.car.ui.toolbar.ToolbarController getToolbar(android.app.Activity)",
+        "static androidx.recyclerview.widget.RecyclerView$Adapter<? extends androidx.recyclerview.widget.RecyclerView$ViewHolder> createListItemAdapter(android.content.Context, java.util.List<? extends com.android.car.ui.recyclerview.CarUiListItem>)",
+        "static com.android.car.ui.toolbar.ToolbarController requireToolbar(android.app.Activity)",
+        "static void replaceInsetsChangedListenerWith(android.app.Activity, com.android.car.ui.baselayout.InsetsChangedListener)",
+        "static com.android.car.ui.baselayout.Insets getInsets(android.app.Activity)",
+        "static com.android.car.ui.baselayout.Insets requireInsets(android.app.Activity)",
+        "static com.android.car.ui.toolbar.ToolbarController installBaseLayoutAround(android.view.View, com.android.car.ui.baselayout.InsetsChangedListener, boolean)",
+        "static com.android.car.ui.toolbar.ToolbarController installBaseLayoutAround(android.view.View, com.android.car.ui.baselayout.InsetsChangedListener, boolean, boolean)",
+        "static com.android.car.ui.toolbar.ToolbarController installBaseLayoutAround(android.content.Context, android.view.View, com.android.car.ui.baselayout.InsetsChangedListener, boolean)",
+        "static com.android.car.ui.toolbar.ToolbarController installBaseLayoutAround(android.content.Context, android.view.View, com.android.car.ui.baselayout.InsetsChangedListener, boolean, boolean)"
+      ],
+      "high_value_fields": [
+        "public static final int MIN_REQUIRED_API",
+        "public static final int MIN_TARGET_API",
+        "public static final int TARGET_API_R"
+      ],
+      "fixture_role": "Use CarUi.requireToolbar(activity) after attaching a Fragment/Activity host that installs the CarUi base layout."
+    },
+    {
+      "class": "com.android.car.ui.AlertDialogBuilder",
+      "kind": "class",
+      "purpose": "Car UI dialog builder. SOURCE AlertDialogBuilder(context) is a Java constructor, not a static factory.",
+      "constructors": [
+        "(android.content.Context)",
+        "(android.content.Context, int)"
+      ],
+      "high_value_methods": [
+        "com.android.car.ui.AlertDialogBuilder setTitle(java.lang.CharSequence)",
+        "com.android.car.ui.AlertDialogBuilder setTitle(int)",
+        "com.android.car.ui.AlertDialogBuilder setSubtitle(java.lang.CharSequence)",
+        "com.android.car.ui.AlertDialogBuilder setPositiveButton(java.lang.CharSequence, android.content.DialogInterface$OnClickListener)",
+        "com.android.car.ui.AlertDialogBuilder setNegativeButton(java.lang.CharSequence, android.content.DialogInterface$OnClickListener)",
+        "android.app.AlertDialog show()"
+      ],
+      "fixture_role": "Prefer ApplicationProvider.getApplicationContext() (or a Robolectric Activity) as the Context passed into AlertDialogBuilder(context); do not use mockk<Context>(relaxed=true) when the real constructor runs (getTheme/getString break). Optional: mockkConstructor(AlertDialogBuilder::class) + anyConstructed<>() chain stubs if show() must be avoided; never mockkStatic the constructor call."
+    },
+    {
+      "class": "com.android.car.ui.toolbar.ToolbarController",
+      "kind": "interface",
+      "purpose": "Primary toolbar API for titles, menu items, back listeners, search, and progress bar.",
+      "high_value_methods": [
+        "void setTitle(int)",
+        "void setTitle(java.lang.CharSequence)",
+        "void setTitle(com.android.car.ui.CarUiText)",
+        "java.lang.CharSequence getTitle()",
+        "void setSubtitle(int)",
+        "void setSubtitle(java.lang.CharSequence)",
+        "void setSubtitle(com.android.car.ui.CarUiText)",
+        "java.lang.CharSequence getSubtitle()",
+        "void setTabs(java.util.List<com.android.car.ui.toolbar.Tab>)",
+        "void setTabs(java.util.List<com.android.car.ui.toolbar.Tab>, int)",
+        "java.util.List<com.android.car.ui.toolbar.Tab> getTabs()",
+        "int getTabCount()",
+        "int getTabPosition(com.android.car.ui.toolbar.TabLayout$Tab)",
+        "void addTab(com.android.car.ui.toolbar.TabLayout$Tab)",
+        "void clearAllTabs()",
+        "com.android.car.ui.toolbar.TabLayout$Tab getTab(int)",
+        "void selectTab(int)",
+        "int getSelectedTab()",
+        "void setShowTabsInSubpage(boolean)",
+        "boolean getShowTabsInSubpage()",
+        "void setLogo(int)",
+        "void setLogo(android.graphics.drawable.Drawable)",
+        "void setOnLogoClickListener(java.lang.Runnable)",
+        "void setSearchHint(int)",
+        "void setSearchHint(java.lang.CharSequence)",
+        "java.lang.CharSequence getSearchHint()",
+        "void setSearchIcon(int)",
+        "void setSearchIcon(android.graphics.drawable.Drawable)",
+        "void setSearchMode(com.android.car.ui.toolbar.SearchMode)",
+        "com.android.car.ui.toolbar.SearchMode getSearchMode()",
+        "void setNavButtonMode(com.android.car.ui.toolbar.Toolbar$NavButtonMode)",
+        "void setNavButtonMode(com.android.car.ui.toolbar.NavButtonMode)",
+        "com.android.car.ui.toolbar.NavButtonMode getNavButtonMode()",
+        "void setBackgroundShown(boolean)",
+        "boolean getBackgroundShown()",
+        "void setMenuItems(java.util.List<com.android.car.ui.toolbar.MenuItem>)",
+        "java.util.List<com.android.car.ui.toolbar.MenuItem> setMenuItems(int)",
+        "java.util.List<com.android.car.ui.toolbar.MenuItem> getMenuItems()",
+        "com.android.car.ui.toolbar.MenuItem findMenuItemById(int)",
+        "com.android.car.ui.toolbar.MenuItem requireMenuItemById(int)",
+        "void setShowMenuItemsWhileSearching(boolean)",
+        "boolean getShowMenuItemsWhileSearching()",
+        "void setSearchQuery(java.lang.String)",
+        "void setState(com.android.car.ui.toolbar.Toolbar$State)",
+        "com.android.car.ui.toolbar.Toolbar$State getState()",
+        "boolean isStateSet()",
+        "void registerOnTabSelectedListener(com.android.car.ui.toolbar.Toolbar$OnTabSelectedListener)",
+        "boolean unregisterOnTabSelectedListener(com.android.car.ui.toolbar.Toolbar$OnTabSelectedListener)",
+        "void registerOnSearchListener(com.android.car.ui.toolbar.Toolbar$OnSearchListener)",
+        "boolean unregisterOnSearchListener(com.android.car.ui.toolbar.Toolbar$OnSearchListener)",
+        "void registerSearchListener(java.util.function.Consumer<java.lang.String>)",
+        "boolean unregisterSearchListener(java.util.function.Consumer<java.lang.String>)",
+        "void setSearchConfig(com.android.car.ui.toolbar.SearchConfig)",
+        "com.android.car.ui.toolbar.SearchCapabilities getSearchCapabilities()",
+        "boolean canShowSearchResultItems()",
+        "boolean canShowSearchResultsView()",
+        "void setSearchResultsView(android.view.View)",
+        "void setSearchResultsInputViewIcon(android.graphics.drawable.Drawable)",
+        "void setSearchResultItems(java.util.List<? extends com.android.car.ui.imewidescreen.CarUiImeSearchListItem>)",
+        "void registerOnSearchCompletedListener(com.android.car.ui.toolbar.Toolbar$OnSearchCompletedListener)",
+        "boolean unregisterOnSearchCompletedListener(com.android.car.ui.toolbar.Toolbar$OnSearchCompletedListener)",
+        "void registerSearchCompletedListener(java.lang.Runnable)",
+        "boolean unregisterSearchCompletedListener(java.lang.Runnable)",
+        "void registerOnBackListener(com.android.car.ui.toolbar.Toolbar$OnBackListener)",
+        "boolean unregisterOnBackListener(com.android.car.ui.toolbar.Toolbar$OnBackListener)",
+        "void registerBackListener(java.util.function.Supplier<java.lang.Boolean>)",
+        "boolean unregisterBackListener(java.util.function.Supplier<java.lang.Boolean>)",
+        "com.android.car.ui.toolbar.ProgressBarController getProgressBar()"
+      ],
+      "fixture_role": "Capture setMenuItems(List) / registerBackListener to trigger menu or back callbacks; stub getProgressBar when progress is exercised."
+    },
+    {
+      "class": "com.android.car.ui.toolbar.MenuItem",
+      "kind": "class",
+      "purpose": "Toolbar menu item model with performClick and listener registration used in verified_menu_callback fixtures.",
+      "high_value_methods": [
+        "void setId(int)",
+        "int getId()",
+        "boolean isEnabled()",
+        "void setEnabled(boolean)",
+        "boolean isCheckable()",
+        "boolean isChecked()",
+        "void setChecked(boolean)",
+        "boolean isTinted()",
+        "boolean isVisible()",
+        "void setVisible(boolean)",
+        "boolean isActivatable()",
+        "boolean isActivated()",
+        "void setActivated(boolean)",
+        "java.lang.CharSequence getTitle()",
+        "void setTitle(java.lang.CharSequence)",
+        "void setTitle(int)",
+        "void setUxRestrictions(int)",
+        "int getUxRestrictions()",
+        "com.android.car.ui.toolbar.MenuItem$OnClickListener getOnClickListener()",
+        "boolean isShowingIconAndTitle()",
+        "void setOnClickListener(com.android.car.ui.toolbar.MenuItem$OnClickListener)",
+        "boolean isRestricted()",
+        "void performClick()",
+        "com.android.car.ui.toolbar.MenuItem$DisplayBehavior getDisplayBehavior()",
+        "android.graphics.drawable.Drawable getIcon()",
+        "void setIcon(android.graphics.drawable.Drawable)",
+        "void setIcon(int)",
+        "boolean isPrimary()",
+        "boolean isSearch()",
+        "static com.android.car.ui.toolbar.MenuItem$Builder builder(android.content.Context)",
+        "void setListener(com.android.car.ui.toolbar.MenuItem$Listener)"
+      ],
+      "fixture_role": "After Fragment attach, capture MenuItem list from setMenuItems and call performClick() on the target item."
+    },
+    {
+      "class": "com.android.car.ui.toolbar.MenuItem.Builder",
+      "kind": "class",
+      "purpose": "Builder for constructing MenuItem fixtures in tests.",
+      "high_value_methods": [
+        "com.android.car.ui.toolbar.MenuItem build()",
+        "com.android.car.ui.toolbar.MenuItem$Builder setId(int)",
+        "com.android.car.ui.toolbar.MenuItem$Builder setTitle(int)",
+        "com.android.car.ui.toolbar.MenuItem$Builder setTitle(java.lang.CharSequence)",
+        "com.android.car.ui.toolbar.MenuItem$Builder setIcon(int)",
+        "com.android.car.ui.toolbar.MenuItem$Builder setIcon(android.graphics.drawable.Drawable)",
+        "com.android.car.ui.toolbar.MenuItem$Builder setTinted(boolean)",
+        "com.android.car.ui.toolbar.MenuItem$Builder setVisible(boolean)",
+        "com.android.car.ui.toolbar.MenuItem$Builder setActivatable()",
+        "com.android.car.ui.toolbar.MenuItem$Builder setActivated(boolean)",
+        "com.android.car.ui.toolbar.MenuItem$Builder setOnClickListener(com.android.car.ui.toolbar.MenuItem$OnClickListener)",
+        "com.android.car.ui.toolbar.MenuItem$Builder setShowIconAndTitle(boolean)",
+        "com.android.car.ui.toolbar.MenuItem$Builder setDisplayBehavior(com.android.car.ui.toolbar.MenuItem$DisplayBehavior)",
+        "com.android.car.ui.toolbar.MenuItem$Builder setEnabled(boolean)",
+        "com.android.car.ui.toolbar.MenuItem$Builder setCheckable()",
+        "com.android.car.ui.toolbar.MenuItem$Builder setChecked(boolean)",
+        "com.android.car.ui.toolbar.MenuItem$Builder setPrimary(boolean)",
+        "com.android.car.ui.toolbar.MenuItem$Builder setUxRestrictions(int)",
+        "com.android.car.ui.toolbar.MenuItem$Builder setToSearch()",
+        "com.android.car.ui.toolbar.MenuItem$Builder setToSettings()",
+        "static com.android.car.ui.toolbar.MenuItem createSearch(android.content.Context, com.android.car.ui.toolbar.MenuItem$OnClickListener)",
+        "static com.android.car.ui.toolbar.MenuItem createSettings(android.content.Context, com.android.car.ui.toolbar.MenuItem$OnClickListener)"
+      ],
+      "constructors": [
+        "com.android.car.ui.toolbar.MenuItem$Builder(android.content.Context)"
+      ]
+    },
+    {
+      "class": "com.android.car.ui.toolbar.MenuItem.OnClickListener",
+      "kind": "interface",
+      "purpose": "Click listener invoked by MenuItem.performClick().",
+      "high_value_methods": [
+        "void onClick(com.android.car.ui.toolbar.MenuItem)"
+      ]
+    },
+    {
+      "class": "com.android.car.ui.toolbar.ProgressBarController",
+      "kind": "interface",
+      "purpose": "Progress bar controller returned by ToolbarController.getProgressBar().",
+      "high_value_methods": [
+        "void setVisible(boolean)",
+        "boolean isVisible()",
+        "void setIndeterminate(boolean)",
+        "boolean isIndeterminate()",
+        "void setMax(int)",
+        "int getMax()",
+        "void setMin(int)",
+        "int getMin()",
+        "void setProgress(int)",
+        "int getProgress()"
+      ]
+    }
+  ],
+  "fixture_recipes": [
+    {
+      "id": "verified_menu_callback",
+      "summary": "Attach Fragment, let production call ToolbarController.setMenuItems, capture the MenuItem list, call MenuItem.performClick(), assert public effect.",
+      "required_apis": [
+        "com.android.car.ui.core.CarUi.requireToolbar",
+        "com.android.car.ui.toolbar.ToolbarController.setMenuItems",
+        "com.android.car.ui.toolbar.MenuItem.performClick"
+      ]
+    },
+    {
+      "id": "carui_back_listener",
+      "summary": "After attach, capture Supplier/OnBackListener registered via registerBackListener and invoke it to cover the back path.",
+      "required_apis": [
+        "com.android.car.ui.toolbar.ToolbarController.registerBackListener",
+        "com.android.car.ui.toolbar.ToolbarController.registerOnBackListener"
+      ]
+    },
+    {
+      "id": "carui_progress",
+      "summary": "When source reads toolbar.progressBar, stub ToolbarController.getProgressBar() to return a ProgressBarController mock and verify that mock.",
+      "required_apis": [
+        "com.android.car.ui.toolbar.ToolbarController.getProgressBar",
+        "com.android.car.ui.toolbar.ProgressBarController"
+      ]
+    }
+  ],
+  "generation_rules": [
+    "Prefer CarUi.requireToolbar(activity) over reflecting private toolbar fields.",
+    "For menu coverage, capture List<MenuItem> from setMenuItems and call performClick(); do not invent MenuItem APIs.",
+    "For findNavController paths, navigation policy is independent of CarUi; still install TestNavHostController with setGraph when required."
+  ],
+  "rag_metadata": {
+    "family": "carui",
+    "priority_tokens": [
+      "carui",
+      "requiretoolbar",
+      "toolbarcontroller",
+      "setmenuitems",
+      "menuitem",
+      "performclick",
+      "registerbacklistener",
+      "progressbar"
+    ]
+  },
+  "generator_script": "javap -public -classpath <car-ui-lib-2.6.0/classes.jar> <class>"
+}

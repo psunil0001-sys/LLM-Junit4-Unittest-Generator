@@ -1,0 +1,12 @@
+id: navigation
+title: "NAVIGATION TEST HOST"
+columns: [when, do, do_not]
+when_any_tags:
+  - android_navigation
+rows:
+  - when: "findNavController / navigate / NavDeepLinkRequest"
+    do: "After commitNow + start, Navigation.setViewNavController(fragment.requireView(), nav); verify navigate with argumentCaptor<NavDeepLinkRequest>(); setGraph only with this module's nav XML ids"
+    do_not: "Java ArgumentCaptor.forClass().capture() on non-null NavDeepLinkRequest; stub void navigate with whenever/thenAnswer; invent R.id destinations"
+  - when: "Hilt Fragment + navigation"
+    do: "Install nav controller AFTER start() and BEFORE resume() so onResume does not fire first"
+    do_not: "resume() then setViewNavController; launchFragmentInContainer"

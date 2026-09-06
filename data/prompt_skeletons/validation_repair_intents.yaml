@@ -1,0 +1,124 @@
+deprecated_robolectric_api: This project uses Robolectric 4.x; replace removed 3.x APIs with verified current shadows. For
+  activeNetwork/getNetworkCapabilities, use shadowOf(connectivityManager).setDefaultNetworkActive(false), not setActiveNetworkInfo(null)
+  or obsolete ShadowNetworkInfo.newInstance overloads. For ApplicationProvider contexts, assert started activities with ShadowApplication.getInstance().getNextStartedActivity().
+duplicate_incremental_candidate: Generate a distinct supplemental test body with the required fixture trigger; do not repeat
+  an existing test that already failed to move Kover.
+duplicate_shared_hilt_test_binding: Remove the per-file binding and use the owning module's shared test Hilt binding for this
+  key.
+hilt_graph_unverified: Attached Hilt Fragment tests need a verified closed graph via shared module test bindings, collaborator
+  @BindValue/@TestInstallIn, or a production graph that already satisfies required keys.
+invalid_activity_controller_order: Create the ActivityController, then apply Theme_AppCompat before attaching the Fragment
+  (`buildActivity(...).create(); activityController.get().setTheme(androidx.appcompat.R.style.Theme_AppCompat)`), then commitNow()/start()/install
+  navigation/resume in order. ActivityController has no .theme() method.
+invalid_activity_result_bypass: Do not argumentCaptor-capture registerForAuthorizationResult/onResult and invoke it; deliver
+  ActivityResult(code, Intent) through the registered launcher/registry.
+invalid_alertdialoghelper_static_mock: Do not mockStatic plain Kotlin companion getInstance() without @JvmStatic; cover dialog/callback
+  lines through the selected public entry path.
+invalid_appcompat_theme_order: Robolectric's ActivityController has no .theme() method; do not chain .theme(...) on buildActivity(...).
+  Use Robolectric.buildActivity(...).create(); then activityController.get().setTheme(androidx.appcompat.R.style.Theme_AppCompat)
+  before commitNow().
+invalid_bindvalue_removal: Do not remove @BindValue from an attached Hilt test; keep @BindValue bindings instead of replacing
+  them with private val mocks or manual ViewModel construction.
+invalid_bindvalue_viewmodel: Prefer the real delegated ViewModel after attach. @BindValue of a ViewModel type is allowed only
+  as bindvalue_viewmodel_fallback when collaborator/public-method control cannot drive the UI.
+invalid_carui_back_listener_fixture: Use the verified CarUi back-listener callback shape; do not capture or stub it as a guessed
+  Kotlin () -> Boolean callback.
+invalid_carui_menu_callback_api: MenuItem.onClick is not public in CarUi; capture the MenuItem and call performClick().
+invalid_carui_progress_verification: CarUI ProgressBarController uses setIndeterminate(boolean), not setIsIndeterminate; or
+  assert public UI behavior instead.
+invalid_carui_static_fixture: Stub CarUi.requireToolbar with the exact host Activity and typed ToolbarController/ProgressBarController
+  mocks.
+invalid_delegated_viewmodel_provider: Do not obtain delegated ViewModels with ViewModelProvider(activity).get(); attach the
+  Fragment under the verified Hilt graph and drive public state methods or verified emissions.
+invalid_detached_coroutine_scope: Do not create GlobalScope or a standalone CoroutineScope in the test; use runTest and the
+  verified scheduler.
+invalid_fixed_buildconfig_branch: Test only the active BuildConfig branch; an opposite branch requires a production seam or
+  different Gradle variant.
+invalid_fragment_arguments_after_attach: Create a fresh Fragment, set arguments first, then attach it through FragmentManager.
+invalid_fragment_detached_lifecycle_probe: Branch gaps on isAdded or toolbar setup require attached Hilt/Robolectric lifecycle;
+  do not call onResume/onStart on a detached Fragment instance.
+invalid_fragment_lifecycle_reentry: Remove direct onCreateView/onViewCreated calls after FragmentManager attachment; commitNow
+  already enters lifecycle.
+invalid_fragment_lifecycle_state_assertion: After activityController.stop() or onStop(), Fragment lifecycle is CREATED or
+  lower; do not assert STARTED or RESUMED.
+invalid_global_hilt_graph_mutation: Per-file tests must not mutate the global Hilt graph; stop or use a shared verified test
+  module outside this generator.
+invalid_hardcoded_dispatcher_final_state_assertion: Avoid final-state assertions for hard-coded Dispatchers.IO work without
+  a dispatcher seam.
+invalid_hilt_service_harness: Start @AndroidEntryPoint Services via Context.startService under @HiltAndroidTest + HiltAndroidRule +
+  HiltTestApplication; never Robolectric.buildService / ServiceController.
+invalid_hilt_worker_harness: Unit-test @HiltWorker doWork() with mock/mockk WorkerParameters and the @AssistedInject constructor;
+  never TestListenableWorkerBuilder, work-testing, HiltWorkerFactory, or androidx.work.Result.
+invalid_permissions_static_grant: Use Shadows.shadowOf(context).grantPermissions / denyPermissions; Shadows.grantPermissions static
+  does not exist.
+invalid_mockk_suspend_stub: Stub suspend members with coEvery / coVerify in the MockK lane, not every { }.
+invalid_mockk_object_teardown: Call unmockkObject / clearAllMocks / unmockkAll in @After after mockkObject.
+invalid_mockk_static_teardown: Call unmockkStatic / clearAllMocks / unmockkAll in @After after mockkStatic.
+invalid_mockk_static_shape: mockkStatic(Type::class) or mockkStatic("pkg.Type"), not Type::class.java (Mockito mockStatic).
+invalid_hilt_activity_reflection: Do not reflect or replace Hilt-injected/private Activity fields; cover public lifecycle/UI
+  behavior or report the missing seam.
+invalid_hilt_lifecycle_setup: Use complete Hilt test setup for attached @AndroidEntryPoint Fragment lifecycle tests, or reduce
+  to non-attached public-contract coverage.
+invalid_hilt_manual_injection: Remove reflection/manual field injection from attached Hilt Fragment tests; close the graph
+  or reduce strategy.
+invalid_host_strategy: Import the manifest-declared HiltTestActivity from the owning module; do not declare a local/fake host.
+invalid_lateinit_injection_setup_order: Construct the ViewModel first, then assign injected lateinit collaborators with direct
+  statements.
+invalid_mockedstatic_factory: Use org.mockito.Mockito.mockStatic(Type::class.java), not MockedStatic.mockStatic(...).
+invalid_mockedstatic_missing_return_type: 'Add the explicit MockedStatic.when return type: mockedStatic.`when`<ReturnType>
+  { Type.staticCall(...) }.'
+invalid_mocking_framework: 'Use one mocking framework per TARGET file: Mockito-Kotlin or MockK, never both. If the file already
+  uses one framework, stay on it.'
+invalid_nav_deeplink_fixture: Replace TestNavHostController(...) with navController = mock(); after commitNow/start call Navigation.setViewNavController(fragment.requireView(),
+  navController); verify navigation with argumentCaptor<NavDeepLinkRequest>(). Use TestNavHostController only when .setGraph(...)
+  installs the exact destination graph.
+invalid_nav_deeplink_java_argumentcaptor: Do not use org.mockito.ArgumentCaptor.forClass(...).capture() inside NavController.navigate(NavDeepLinkRequest)
+  verification. Use org.mockito.kotlin.argumentCaptor<NavDeepLinkRequest>() instead.
+invalid_project_interface_call: Use only methods declared by the verified project interface; remove the invented call or replace
+  it with the real API.
+invalid_property_assignment_verification: Verify method calls or resulting public behavior; do not use Mockito property-assignment
+  verification.
+invalid_retrofit_error_body: Response.error(code, null) can throw while Mockito stubbing is unfinished. Use a concrete okhttp3.ResponseBody,
+  for example ResponseBody.create(null, "error").
+invalid_robolectric_runner_placement: Keep @RunWith(RobolectricTestRunner::class) directly on the *Test class (only other
+  class annotations may sit between). Move helper types below the test class.
+invalid_singleton_reflection: Do not reflect singleton internals; use verified public behavior, or a MockedStatic<Type> only
+  for Java static/@JvmStatic APIs.
+invalid_speculative_sdk_exception_constructor: Use only a project-verified exception constructor or throw a standard exception
+  accepted by the public path.
+invalid_stateflow_reflection: Do not read private StateFlow/LiveData fields via reflection; drive public ViewModel methods
+  or verified mutable test seams after Fragment attach.
+invalid_static_stub_eq_mock: Reuse one shared mock variable for the static stub and the production call; do not stub with
+  eq(mock()) or a fresh mock() only inside the stub.
+invalid_suspend_call_context: Move suspend production calls out of @Before/stubbing expressions and invoke them inside runTest.
+invalid_suspend_assert: Wrap suspend acts in assertThrows with runBlocking { } or runTest { } (Apollo harness pattern), or assert observable state instead of calling suspend methods in a plain lambda.
+invalid_void_navigation_stubbing: Do not stub NavController.navigate(NavDeepLinkRequest) with Mockito.when/thenAnswer. Trigger
+  the event, then verify(navController).navigate(captor.capture()) using a Mockito-Kotlin captor.
+missing_coverage_trigger_activity_result: Dispatch a concrete ActivityResult through the registered launcher/registry; do
+  not capture and invoke the outer onResult lambda.
+missing_coverage_trigger_callback: Invoke the concrete callback or event trigger required by the selected fixture before asserting
+  its effect.
+missing_coverage_trigger_click: Attach the Fragment and performClick() on the registered view that owns the listener.
+missing_coverage_trigger_coroutine: Provide flowOf/emit with the required item and advance the test scheduler under runTest.
+missing_coverage_trigger_countdown: Advance the verified looper/clock or invoke the captured onFinish callback before asserting
+  final state.
+missing_coverage_trigger_dialog: Trigger dialog/callback coverage through the target class public entry path (toolbar/menu
+  click, performClick, lifecycle host); do not call delegated getInstance() helpers directly from the test.
+missing_coverage_trigger_exception: Configure a verified collaborator with thenThrow/doThrow before invoking the public entry
+  and assert its fallback.
+missing_coverage_trigger_menu: Capture List<MenuItem> passed to setMenuItems, call MenuItem.performClick(), and assert the
+  resulting public behavior.
+missing_coverage_trigger_network: Configure the verified Robolectric network state before performClick(), using setDefaultNetworkActive(...)
+  or the source's getNetworkCapabilities(...) path.
+missing_coverage_trigger_observer_before_click: Post/set the required observable value, then performClick() on the registered
+  view.
+missing_coverage_trigger_sdk: Use Robolectric @Config with an installed SDK on the selected side of the Build.VERSION guard;
+  use SDK 32 for a pre-TIRAMISU branch.
+mixed_mocking_frameworks: Do not mix io.mockk and org.mockito / mockito-kotlin in the same test file. Pick exactly one framework
+  for the TARGET file and use it throughout.
+nonstandard_mock_framework: Stay on the mocking framework already in this TARGET file. Do not mix io.mockk and org.mockito
+  / mockito-kotlin in the same file.
+instrumented_missing_hilt_annotation: Add @HiltAndroidTest to the androidTest class when SOURCE uses @AndroidEntryPoint or @Inject.
+instrumented_missing_hilt_rule: Add @get:Rule val hiltRule = HiltAndroidRule(this) and call hiltRule.inject() in @Before.
+instrumented_forbidden_robolectric_pattern: Remove Robolectric runner, @Config, and ActivityController from androidTest. HiltTestApplication belongs on the androidTest manifest and HiltTestRunner, not @Config on the test class.
+instrumented_missing_android_junit4: Add @RunWith(AndroidJUnit4::class) to the androidTest class.

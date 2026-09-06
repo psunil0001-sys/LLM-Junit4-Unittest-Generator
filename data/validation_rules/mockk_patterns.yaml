@@ -1,0 +1,35 @@
+rules:
+  - when:
+      test_contains: io.mockk
+      test_any:
+        - 'every\s*\{'
+      source_any:
+        - 'suspend fun'
+        - 'suspend ('
+      test: 'every\s*\{[^}]*(?:await|suspend|\.invoke)'
+      test_not_contains: coEvery
+    message: >-
+      invalid_mockk_suspend_stub: MockK lane must stub suspend members with coEvery / coVerify,
+      not every { } / verify { }.
+
+  - when:
+      test_contains: mockkObject
+      test_not: 'unmockkObject|clearAllMocks|unmockkAll'
+    message: >-
+      invalid_mockk_object_teardown: mockkObject requires unmockkObject / clearAllMocks / unmockkAll
+      in @After so later tests do not leak the object mock.
+
+  - when:
+      test_contains: mockkStatic
+      test_not: 'unmockkStatic|clearAllMocks|unmockkAll'
+    message: >-
+      invalid_mockk_static_teardown: mockkStatic requires unmockkStatic / clearAllMocks / unmockkAll
+      in @After.
+
+  - when:
+      test_contains: io.mockk
+      test: 'mockkStatic\s*\(\s*[A-Za-z_][A-Za-z0-9_]*::class\.java\s*\)'
+    message: >-
+      invalid_mockk_static_shape: mockkStatic takes the KClass / string name
+      (mockkStatic(Type::class) or mockkStatic("pkg.Type")), not Type::class.java
+      (that is Mockito mockStatic).

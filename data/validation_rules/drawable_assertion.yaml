@@ -1,0 +1,6 @@
+rules:
+  - when:
+      test: '\.background\.constantState\?\.resourceId\b'
+    message: >-
+      Robolectric Drawable ConstantState does not expose a stable resourceId.
+      Assert stable UI structure/state instead, such as child count, item id/title, callback, or no thrown exception.

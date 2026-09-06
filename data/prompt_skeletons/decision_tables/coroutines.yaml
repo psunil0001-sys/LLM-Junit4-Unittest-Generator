@@ -1,0 +1,20 @@
+id: coroutines
+title: "COROUTINES / FLOW / LIVEDATA"
+columns: [when, do, do_not]
+when_any_tags:
+  - coroutines_flow
+  - viewmodel
+  - hilt_viewmodel
+rows:
+  - when: "suspend CUT / suspend collaborator"
+    do: "Wrap act in kotlinx.coroutines.test.runTest; lane-correct suspend stubs (Mockito thenReturn/thenAnswer; MockK coEvery/coVerify)"
+    do_not: "every { } on suspend in MockK lane; assertThrows around suspend outside runTest; JUnit5 assertDoesNotThrow"
+  - when: "StateFlow / SharedFlow / flowOf"
+    do: "emit/flowOf under runTest; advanceUntilIdle or UnconfinedTestDispatcher"
+    do_not: "GlobalScope; standalone CoroutineScope; InstantTaskExecutorRule for coroutines-only"
+  - when: "LiveData under test"
+    do: "InstantTaskExecutorRule; observeForever or getOrAwait; drive public setters"
+    do_not: "Reflect private MutableLiveData/StateFlow fields"
+  - when: "Hard-coded Dispatchers.IO with real delay"
+    do: "Assert a small observable effect or use a verified dispatcher seam"
+    do_not: "Thread.sleep / wait in real time; final-state assert without a seam"

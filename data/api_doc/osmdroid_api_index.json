@@ -1,0 +1,61 @@
+{
+  "schema_version": "1.0",
+  "library": "osmdroid MapView",
+  "version": "6.1",
+  "purpose": "JVM-safe osmdroid types for unit tests. Mock IMapController; do not download tiles.",
+  "official_references": [
+    "https://osmdroid.github.io/osmdroid/javadocs/"
+  ],
+  "coordinates": {
+    "group_id": "org.osmdroid",
+    "artifact_id": "osmdroid-android",
+    "version": "6.1.18",
+    "gradle": "implementation(\"org.osmdroid:osmdroid-android:6.1.18\")"
+  },
+  "api_index": [
+    {
+      "qualified_name": "org.osmdroid.views.MapView",
+      "kind": "class",
+      "purpose": "Map widget. Construction/inflation may not be JVM-safe; prefer mocking getController() or testing extracted helpers.",
+      "members": [
+        "fun getController(): IMapController",
+        "fun getOverlays(): List<Overlay>",
+        "fun getZoomLevelDouble(): Double",
+        "fun setTileSource(tileSource: ITileSource)",
+        "fun onResume()",
+        "fun onPause()"
+      ]
+    },
+    {
+      "qualified_name": "org.osmdroid.api.IMapController",
+      "kind": "interface",
+      "purpose": "Mock this in unit tests for center/zoom. Do not hit the network.",
+      "members": [
+        "fun setCenter(point: IGeoPoint)",
+        "fun setZoom(zoomLevel: Double): Double",
+        "fun zoomIn(): Boolean",
+        "fun zoomOut(): Boolean",
+        "fun animateTo(point: IGeoPoint)"
+      ]
+    },
+    {
+      "qualified_name": "org.osmdroid.util.GeoPoint",
+      "kind": "class",
+      "purpose": "Lat/lon point used by setCenter/animateTo.",
+      "members": [
+        "constructor(latitude: Double, longitude: Double)",
+        "fun getLatitude(): Double",
+        "fun getLongitude(): Double"
+      ]
+    },
+    {
+      "class": "Anti-patterns",
+      "purpose": "No live tiles in JVM unit tests.",
+      "methods": [
+        "Downloading OpenStreetMap tiles",
+        "Invented MapView APIs not listed here",
+        "Instrumentation ActivityScenario solely to render a map"
+      ]
+    }
+  ]
+}

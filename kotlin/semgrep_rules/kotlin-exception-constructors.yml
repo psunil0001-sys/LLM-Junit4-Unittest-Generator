@@ -1,0 +1,10 @@
+rules:
+  - id: kotlin.sdk-exception-constructor-candidate
+    languages: [kotlin]
+    severity: WARNING
+    message: Exception constructor candidate requires declaration or usage verification.
+    patterns:
+      - pattern: $EXCEPTION(...)
+      - metavariable-regex:
+          metavariable: $EXCEPTION
+          regex: '^[A-Za-z_][A-Za-z0-9_]*(Exception|Error)$'

@@ -1,0 +1,657 @@
+{
+  "schema_version": "1.0",
+  "library": "AppAuth for Android",
+  "version": "0.11.1",
+  "generated_for": "LLM/RAG JUnit4 Android unit-test generation",
+  "coverage_note": "High-value capability and fixture-construction index for net.openid:appauth:0.11.1. It is designed to prevent invented AppAuth constructors/builders in generated tests. The index focuses on public request/response/state types used most often in repository, authentication, token, and callback tests. For a guaranteed exhaustive symbol index, run the included generator_script against the official 0.11.1 sources or javadoc JAR.",
+  "verification_status": {
+    "artifact_and_version": "verified",
+    "package_namespace": "verified",
+    "high_value_api_index": "best-effort curated from official project/Javadoc API surface",
+    "fixture_recipes": "generation guidance; validate exact signatures against the included local extractor before treating as strict allowlist"
+  },
+  "official_sources": {
+    "github": "https://github.com/openid/AppAuth-Android",
+    "maven_central": "https://central.sonatype.com/artifact/net.openid/appauth/0.11.1",
+    "maven_repository_directory": "https://repo1.maven.org/maven2/net/openid/appauth/0.11.1/",
+    "javadoc_io": "https://javadoc.io/doc/net.openid/appauth/0.11.1/",
+    "source_jar": "https://repo1.maven.org/maven2/net/openid/appauth/0.11.1/appauth-0.11.1-sources.jar",
+    "javadoc_jar": "https://repo1.maven.org/maven2/net/openid/appauth/0.11.1/appauth-0.11.1-javadoc.jar"
+  },
+  "maven_coordinates": [
+    "net.openid:appauth:0.11.1"
+  ],
+  "package_prefixes": [
+    "net.openid.appauth",
+    "net.openid.appauth.browser"
+  ],
+  "capability_categories": [
+    "OAuth 2.0 authorization requests and responses",
+    "OpenID Connect authorization requests and ID tokens",
+    "Authorization service discovery/configuration",
+    "Token exchange and token refresh",
+    "Dynamic client registration",
+    "Persistent authorization state",
+    "Authorization and token error modelling",
+    "Browser/custom-tab selection",
+    "Android Intent-based authorization callback handling"
+  ],
+  "api_index": [
+    {
+      "class": "net.openid.appauth.AuthorizationServiceConfiguration",
+      "kind": "class",
+      "purpose": "Holds authorization and token endpoint URIs and optional registration/discovery metadata.",
+      "constructors": [
+        "AuthorizationServiceConfiguration(android.net.Uri authorizationEndpoint, android.net.Uri tokenEndpoint)",
+        "AuthorizationServiceConfiguration(android.net.Uri authorizationEndpoint, android.net.Uri tokenEndpoint, android.net.Uri registrationEndpoint)"
+      ],
+      "high_value_methods": [
+        "static void fetchFromIssuer(android.net.Uri openIdConnectIssuerUri, AuthorizationServiceConfiguration.RetrieveConfigurationCallback callback)",
+        "static void fetchFromUrl(android.net.Uri openIdConnectDiscoveryUri, AuthorizationServiceConfiguration.RetrieveConfigurationCallback callback)"
+      ],
+      "fixture_role": "Required root fixture for AuthorizationRequest, RegistrationRequest, and related response objects."
+    },
+    {
+      "class": "net.openid.appauth.AuthorizationServiceConfiguration.RetrieveConfigurationCallback",
+      "kind": "callback interface",
+      "purpose": "Receives discovered service configuration or an AuthorizationException.",
+      "methods": [
+        "void onFetchConfigurationCompleted(AuthorizationServiceConfiguration serviceConfiguration, AuthorizationException ex)"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.AuthorizationRequest",
+      "kind": "class",
+      "purpose": "Immutable OAuth/OIDC authorization request.",
+      "high_value_fields": [
+        "AuthorizationServiceConfiguration configuration",
+        "String clientId",
+        "String responseType",
+        "android.net.Uri redirectUri",
+        "String scope",
+        "String state",
+        "String nonce",
+        "String codeVerifier",
+        "String codeVerifierChallenge",
+        "String codeVerifierChallengeMethod",
+        "Map<String,String> additionalParameters"
+      ],
+      "high_value_methods": [
+        "android.net.Uri toUri()",
+        "org.json.JSONObject jsonSerialize()",
+        "static AuthorizationRequest jsonDeserialize(org.json.JSONObject json)"
+      ],
+      "preferred_construction": "AuthorizationRequest.Builder"
+    },
+    {
+      "class": "net.openid.appauth.AuthorizationRequest.Builder",
+      "kind": "builder",
+      "purpose": "Verified construction path for AuthorizationRequest fixtures.",
+      "constructors": [
+        "AuthorizationRequest.Builder(AuthorizationServiceConfiguration configuration, String clientId, String responseType, android.net.Uri redirectUri)"
+      ],
+      "high_value_methods": [
+        "AuthorizationRequest.Builder setScope(String scope)",
+        "AuthorizationRequest.Builder setScope(String... scopeValues)",
+        "AuthorizationRequest.Builder setState(String state)",
+        "AuthorizationRequest.Builder setNonce(String nonce)",
+        "AuthorizationRequest.Builder setLoginHint(String loginHint)",
+        "AuthorizationRequest.Builder setPrompt(String prompt)",
+        "AuthorizationRequest.Builder setResponseMode(String responseMode)",
+        "AuthorizationRequest.Builder setCodeVerifier(String codeVerifier)",
+        "AuthorizationRequest.Builder setCodeVerifier(String codeVerifier, String codeVerifierChallenge, String codeVerifierChallengeMethod)",
+        "AuthorizationRequest.Builder setAdditionalParameters(Map<String,String> additionalParameters)",
+        "AuthorizationRequest build()"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.AuthorizationResponse",
+      "kind": "class",
+      "purpose": "Successful response to an AuthorizationRequest.",
+      "high_value_fields": [
+        "AuthorizationRequest request",
+        "String state",
+        "String tokenType",
+        "String authorizationCode",
+        "String accessToken",
+        "Long accessTokenExpirationTime",
+        "String idToken",
+        "String scope",
+        "Map<String,String> additionalParameters"
+      ],
+      "high_value_methods": [
+        "static AuthorizationResponse fromIntent(android.content.Intent dataIntent)",
+        "android.content.Intent toIntent()",
+        "TokenRequest createTokenExchangeRequest()",
+        "TokenRequest createTokenExchangeRequest(Map<String,String> additionalExchangeParameters)",
+        "Set<String> getScopeSet()",
+        "org.json.JSONObject jsonSerialize()",
+        "static AuthorizationResponse jsonDeserialize(org.json.JSONObject json)"
+      ],
+      "preferred_construction": "AuthorizationResponse.Builder"
+    },
+    {
+      "class": "net.openid.appauth.AuthorizationResponse.Builder",
+      "kind": "builder",
+      "purpose": "Verified construction path for successful authorization-response fixtures.",
+      "constructors": [
+        "AuthorizationResponse.Builder(AuthorizationRequest request)"
+      ],
+      "high_value_methods": [
+        "AuthorizationResponse.Builder setState(String state)",
+        "AuthorizationResponse.Builder setTokenType(String tokenType)",
+        "AuthorizationResponse.Builder setAuthorizationCode(String authorizationCode)",
+        "AuthorizationResponse.Builder setAccessToken(String accessToken)",
+        "AuthorizationResponse.Builder setAccessTokenExpirationTime(Long accessTokenExpirationTime)",
+        "AuthorizationResponse.Builder setIdToken(String idToken)",
+        "AuthorizationResponse.Builder setScope(String scope)",
+        "AuthorizationResponse.Builder setAdditionalParameters(Map<String,String> additionalParameters)",
+        "AuthorizationResponse build()"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.TokenRequest",
+      "kind": "class",
+      "purpose": "Immutable OAuth token endpoint request for authorization-code exchange or refresh.",
+      "high_value_fields": [
+        "AuthorizationServiceConfiguration configuration",
+        "String clientId",
+        "String nonce",
+        "String grantType",
+        "android.net.Uri redirectUri",
+        "String scope",
+        "String authorizationCode",
+        "String refreshToken",
+        "String codeVerifier",
+        "Map<String,String> additionalParameters"
+      ],
+      "high_value_methods": [
+        "Map<String,String> getRequestParameters()",
+        "org.json.JSONObject jsonSerialize()",
+        "static TokenRequest jsonDeserialize(org.json.JSONObject json)"
+      ],
+      "preferred_construction": "TokenRequest.Builder"
+    },
+    {
+      "class": "net.openid.appauth.TokenRequest.Builder",
+      "kind": "builder",
+      "purpose": "Verified construction path for token exchange and refresh fixtures.",
+      "constructors": [
+        "TokenRequest.Builder(AuthorizationServiceConfiguration configuration, String clientId)"
+      ],
+      "high_value_methods": [
+        "TokenRequest.Builder setNonce(String nonce)",
+        "TokenRequest.Builder setGrantType(String grantType)",
+        "TokenRequest.Builder setRedirectUri(android.net.Uri redirectUri)",
+        "TokenRequest.Builder setScope(String scope)",
+        "TokenRequest.Builder setScope(String... scopeValues)",
+        "TokenRequest.Builder setAuthorizationCode(String authorizationCode)",
+        "TokenRequest.Builder setRefreshToken(String refreshToken)",
+        "TokenRequest.Builder setCodeVerifier(String codeVerifier)",
+        "TokenRequest.Builder setAdditionalParameters(Map<String,String> additionalParameters)",
+        "TokenRequest build()"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.TokenResponse",
+      "kind": "class",
+      "purpose": "Successful OAuth token endpoint response.",
+      "high_value_fields": [
+        "TokenRequest request",
+        "String tokenType",
+        "String accessToken",
+        "Long accessTokenExpirationTime",
+        "String idToken",
+        "String refreshToken",
+        "String scope",
+        "String riskVisitorId",
+        "Map<String,String> additionalParameters"
+      ],
+      "high_value_methods": [
+        "Set<String> getScopeSet()",
+        "org.json.JSONObject jsonSerialize()",
+        "static TokenResponse jsonDeserialize(org.json.JSONObject json)"
+      ],
+      "preferred_construction": "TokenResponse.Builder"
+    },
+    {
+      "class": "net.openid.appauth.TokenResponse.Builder",
+      "kind": "builder",
+      "purpose": "Verified construction path for successful token-response fixtures.",
+      "constructors": [
+        "TokenResponse.Builder(TokenRequest request)"
+      ],
+      "high_value_methods": [
+        "TokenResponse.Builder setTokenType(String tokenType)",
+        "TokenResponse.Builder setAccessToken(String accessToken)",
+        "TokenResponse.Builder setAccessTokenExpirationTime(Long accessTokenExpirationTime)",
+        "TokenResponse.Builder setIdToken(String idToken)",
+        "TokenResponse.Builder setRefreshToken(String refreshToken)",
+        "TokenResponse.Builder setScope(String scope)",
+        "TokenResponse.Builder setRiskVisitorId(String riskVisitorId)",
+        "TokenResponse.Builder setAdditionalParameters(Map<String,String> additionalParameters)",
+        "TokenResponse build()"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.AuthState",
+      "kind": "class",
+      "purpose": "Mutable aggregate of authorization, token, registration, and error state.",
+      "constructors": [
+        "AuthState()",
+        "AuthState(AuthorizationServiceConfiguration config)",
+        "AuthState(AuthorizationResponse authResponse, AuthorizationException authException)",
+        "AuthState(RegistrationResponse registrationResponse)"
+      ],
+      "high_value_methods": [
+        "void update(AuthorizationResponse authResponse, AuthorizationException authException)",
+        "void update(TokenResponse tokenResponse, AuthorizationException authException)",
+        "void update(RegistrationResponse registrationResponse)",
+        "boolean isAuthorized()",
+        "AuthorizationServiceConfiguration getAuthorizationServiceConfiguration()",
+        "AuthorizationResponse getLastAuthorizationResponse()",
+        "TokenResponse getLastTokenResponse()",
+        "RegistrationResponse getLastRegistrationResponse()",
+        "AuthorizationException getAuthorizationException()",
+        "String getAccessToken()",
+        "String getIdToken()",
+        "String getRefreshToken()",
+        "String getScope()",
+        "Set<String> getScopeSet()",
+        "boolean getNeedsTokenRefresh()",
+        "void setNeedsTokenRefresh(boolean needsTokenRefresh)",
+        "TokenRequest createTokenRefreshRequest()",
+        "TokenRequest createTokenRefreshRequest(Map<String,String> additionalParameters)",
+        "void performActionWithFreshTokens(AuthorizationService service, AuthState.AuthStateAction action)",
+        "void performActionWithFreshTokens(AuthorizationService service, ClientAuthentication clientAuthentication, AuthState.AuthStateAction action)",
+        "org.json.JSONObject jsonSerialize()",
+        "String jsonSerializeString()",
+        "static AuthState jsonDeserialize(org.json.JSONObject json)",
+        "static AuthState jsonDeserialize(String json)"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.AuthState.AuthStateAction",
+      "kind": "callback interface",
+      "purpose": "Callback used by AuthState.performActionWithFreshTokens.",
+      "methods": [
+        "void execute(String accessToken, String idToken, AuthorizationException ex)"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.AuthorizationException",
+      "kind": "exception class",
+      "purpose": "Structured OAuth/OIDC authorization, token, registration, and general error.",
+      "high_value_fields": [
+        "int type",
+        "int code",
+        "String error",
+        "String errorDescription",
+        "android.net.Uri errorUri",
+        "Throwable rootCause"
+      ],
+      "high_value_methods": [
+        "static AuthorizationException fromIntent(android.content.Intent dataIntent)",
+        "android.content.Intent toIntent()",
+        "static AuthorizationException fromOAuthRedirect(android.net.Uri redirectUri)",
+        "static AuthorizationException fromTokenResponse(org.json.JSONObject json)",
+        "static AuthorizationException fromRegistrationResponse(org.json.JSONObject json)",
+        "org.json.JSONObject toJson()",
+        "static AuthorizationException fromJson(org.json.JSONObject json)"
+      ],
+      "nested_templates": [
+        "AuthorizationException.GeneralErrors",
+        "AuthorizationException.AuthorizationRequestErrors",
+        "AuthorizationException.TokenRequestErrors",
+        "AuthorizationException.RegistrationRequestErrors"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.AuthorizationService",
+      "kind": "class",
+      "purpose": "Executes authorization, token, registration, and end-session operations.",
+      "constructors": [
+        "AuthorizationService(android.content.Context context)",
+        "AuthorizationService(android.content.Context context, AppAuthConfiguration clientConfiguration)"
+      ],
+      "high_value_methods": [
+        "android.content.Intent getAuthorizationRequestIntent(AuthorizationRequest request)",
+        "android.content.Intent getAuthorizationRequestIntent(AuthorizationRequest request, CustomTabsIntent customTabsIntent)",
+        "void performAuthorizationRequest(AuthorizationRequest request, android.app.PendingIntent completedIntent)",
+        "void performAuthorizationRequest(AuthorizationRequest request, android.app.PendingIntent completedIntent, android.app.PendingIntent canceledIntent)",
+        "void performTokenRequest(TokenRequest request, AuthorizationService.TokenResponseCallback callback)",
+        "void performTokenRequest(TokenRequest request, ClientAuthentication clientAuthentication, AuthorizationService.TokenResponseCallback callback)",
+        "void performRegistrationRequest(RegistrationRequest request, AuthorizationService.RegistrationResponseCallback callback)",
+        "void dispose()"
+      ],
+      "test_guidance": "Prefer mocking AuthorizationService at repository boundaries. Real network execution is not a JVM unit-test fixture."
+    },
+    {
+      "class": "net.openid.appauth.AuthorizationService.TokenResponseCallback",
+      "kind": "callback interface",
+      "purpose": "Receives TokenResponse or AuthorizationException.",
+      "methods": [
+        "void onTokenRequestCompleted(TokenResponse response, AuthorizationException ex)"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.AuthorizationService.RegistrationResponseCallback",
+      "kind": "callback interface",
+      "purpose": "Receives RegistrationResponse or AuthorizationException.",
+      "methods": [
+        "void onRegistrationRequestCompleted(RegistrationResponse response, AuthorizationException ex)"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.RegistrationRequest",
+      "kind": "class",
+      "purpose": "Dynamic client registration request.",
+      "preferred_construction": "RegistrationRequest.Builder",
+      "high_value_methods": [
+        "org.json.JSONObject toJson()",
+        "org.json.JSONObject jsonSerialize()",
+        "static RegistrationRequest jsonDeserialize(org.json.JSONObject json)"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.RegistrationRequest.Builder",
+      "kind": "builder",
+      "purpose": "Construction path for dynamic client registration fixtures.",
+      "constructors": [
+        "RegistrationRequest.Builder(AuthorizationServiceConfiguration configuration, List<android.net.Uri> redirectUris)"
+      ],
+      "high_value_methods": [
+        "RegistrationRequest.Builder setApplicationType(String applicationType)",
+        "RegistrationRequest.Builder setResponseTypeValues(List<String> responseTypes)",
+        "RegistrationRequest.Builder setGrantTypeValues(List<String> grantTypes)",
+        "RegistrationRequest.Builder setSubjectType(String subjectType)",
+        "RegistrationRequest.Builder setTokenEndpointAuthenticationMethod(String method)",
+        "RegistrationRequest.Builder setAdditionalParameters(Map<String,String> additionalParameters)",
+        "RegistrationRequest build()"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.RegistrationResponse",
+      "kind": "class",
+      "purpose": "Dynamic client registration response.",
+      "preferred_construction": "RegistrationResponse.Builder",
+      "high_value_methods": [
+        "org.json.JSONObject jsonSerialize()",
+        "static RegistrationResponse jsonDeserialize(org.json.JSONObject json)"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.RegistrationResponse.Builder",
+      "kind": "builder",
+      "purpose": "Construction path for registration-response fixtures.",
+      "constructors": [
+        "RegistrationResponse.Builder(RegistrationRequest request)"
+      ],
+      "high_value_methods": [
+        "RegistrationResponse.Builder setClientId(String clientId)",
+        "RegistrationResponse.Builder setClientIdIssuedAt(Long clientIdIssuedAt)",
+        "RegistrationResponse.Builder setClientSecret(String clientSecret)",
+        "RegistrationResponse.Builder setClientSecretExpiresAt(Long clientSecretExpiresAt)",
+        "RegistrationResponse.Builder setRegistrationAccessToken(String token)",
+        "RegistrationResponse.Builder setRegistrationClientUri(android.net.Uri uri)",
+        "RegistrationResponse.Builder setTokenEndpointAuthMethod(String method)",
+        "RegistrationResponse.Builder setAdditionalParameters(Map<String,String> additionalParameters)",
+        "RegistrationResponse build()"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.ResponseTypeValues",
+      "kind": "constants class",
+      "purpose": "Authorization response_type values.",
+      "fields": [
+        "String CODE",
+        "String TOKEN",
+        "String ID_TOKEN",
+        "String CODE_AND_TOKEN",
+        "String CODE_AND_ID_TOKEN",
+        "String ID_TOKEN_AND_TOKEN",
+        "String CODE_ID_TOKEN_AND_TOKEN"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.GrantTypeValues",
+      "kind": "constants class",
+      "purpose": "OAuth grant_type values.",
+      "fields": [
+        "String AUTHORIZATION_CODE",
+        "String REFRESH_TOKEN",
+        "String CLIENT_CREDENTIALS",
+        "String PASSWORD",
+        "String IMPLICIT"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.CodeVerifierUtil",
+      "kind": "utility class",
+      "purpose": "PKCE code verifier/challenge generation and validation.",
+      "high_value_methods": [
+        "static String generateRandomCodeVerifier()",
+        "static String generateRandomCodeVerifier(java.security.SecureRandom entropySource, int entropyBytes)",
+        "static void checkCodeVerifier(String codeVerifier)",
+        "static String deriveCodeVerifierChallenge(String codeVerifier)",
+        "static String getCodeVerifierChallengeMethod()"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.ClientAuthentication",
+      "kind": "interface",
+      "purpose": "Applies client authentication to token/registration HTTP requests.",
+      "high_value_methods": [
+        "Map<String,String> getRequestHeaders(String clientId)",
+        "Map<String,String> getRequestParameters(String clientId)"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.ClientSecretBasic",
+      "kind": "class",
+      "purpose": "HTTP Basic client-secret authentication.",
+      "constructors": [
+        "ClientSecretBasic(String clientSecret)"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.ClientSecretPost",
+      "kind": "class",
+      "purpose": "Request-body client-secret authentication.",
+      "constructors": [
+        "ClientSecretPost(String clientSecret)"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.NoClientAuthentication",
+      "kind": "class",
+      "purpose": "No client authentication.",
+      "high_value_methods": [
+        "static NoClientAuthentication getInstance()"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.AppAuthConfiguration",
+      "kind": "class",
+      "purpose": "Configures browser matching, connection builder, and data store.",
+      "preferred_construction": "AppAuthConfiguration.Builder"
+    },
+    {
+      "class": "net.openid.appauth.AppAuthConfiguration.Builder",
+      "kind": "builder",
+      "purpose": "Construction path for AuthorizationService configuration.",
+      "high_value_methods": [
+        "AppAuthConfiguration.Builder setBrowserMatcher(net.openid.appauth.browser.BrowserMatcher browserMatcher)",
+        "AppAuthConfiguration.Builder setConnectionBuilder(net.openid.appauth.connectivity.ConnectionBuilder connectionBuilder)",
+        "AppAuthConfiguration.Builder setSkipIssuerHttpsCheck(boolean skipIssuerHttpsCheck)",
+        "AppAuthConfiguration build()"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.browser.BrowserMatcher",
+      "kind": "interface",
+      "purpose": "Determines whether a discovered browser is accepted.",
+      "methods": [
+        "boolean matches(net.openid.appauth.browser.BrowserDescriptor descriptor)"
+      ]
+    },
+    {
+      "class": "net.openid.appauth.browser.Browsers",
+      "kind": "constants container",
+      "purpose": "Known browser package/signature matchers.",
+      "test_guidance": "Use only constants present in the exact 0.11.1 Javadoc/source index."
+    }
+  ],
+  "fixture_recipes": [
+    {
+      "id": "appauth.service_configuration.basic",
+      "capability": "AuthorizationServiceConfiguration fixture",
+      "kotlin_example": "val config = AuthorizationServiceConfiguration(\n    Uri.parse(\"https://issuer.example/authorize\"),\n    Uri.parse(\"https://issuer.example/token\")\n)",
+      "required_types": [
+        "android.net.Uri",
+        "net.openid.appauth.AuthorizationServiceConfiguration"
+      ],
+      "classification": "SAFE when android.net.Uri parsing is available in the test runtime"
+    },
+    {
+      "id": "appauth.authorization_request.code",
+      "capability": "AuthorizationRequest fixture",
+      "kotlin_example": "val request = AuthorizationRequest.Builder(\n    config,\n    \"client-id\",\n    ResponseTypeValues.CODE,\n    Uri.parse(\"com.example:/oauth2redirect\")\n)\n    .setScope(\"openid profile\")\n    .setState(\"state-123\")\n    .build()",
+      "required_types": [
+        "AuthorizationServiceConfiguration",
+        "AuthorizationRequest.Builder",
+        "ResponseTypeValues.CODE",
+        "android.net.Uri"
+      ],
+      "classification": "SAFE after exact builder signature verification"
+    },
+    {
+      "id": "appauth.authorization_response.success",
+      "capability": "AuthorizationResponse fixture",
+      "kotlin_example": "val response = AuthorizationResponse.Builder(request)\n    .setState(request.state)\n    .setAuthorizationCode(\"authorization-code\")\n    .build()",
+      "required_types": [
+        "AuthorizationRequest",
+        "AuthorizationResponse.Builder"
+      ],
+      "classification": "ATTEMPTABLE until exact 0.11.1 builder methods are indexed"
+    },
+    {
+      "id": "appauth.token_request.authorization_code",
+      "capability": "TokenRequest fixture",
+      "kotlin_example": "val tokenRequest = TokenRequest.Builder(config, \"client-id\")\n    .setGrantType(GrantTypeValues.AUTHORIZATION_CODE)\n    .setAuthorizationCode(\"authorization-code\")\n    .setRedirectUri(Uri.parse(\"com.example:/oauth2redirect\"))\n    .build()",
+      "required_types": [
+        "TokenRequest.Builder",
+        "GrantTypeValues.AUTHORIZATION_CODE",
+        "android.net.Uri"
+      ],
+      "classification": "ATTEMPTABLE until exact 0.11.1 builder methods are indexed"
+    },
+    {
+      "id": "appauth.token_request.refresh",
+      "capability": "Refresh-token request fixture",
+      "kotlin_example": "val tokenRequest = TokenRequest.Builder(config, \"client-id\")\n    .setGrantType(GrantTypeValues.REFRESH_TOKEN)\n    .setRefreshToken(\"refresh-token\")\n    .build()",
+      "required_types": [
+        "TokenRequest.Builder",
+        "GrantTypeValues.REFRESH_TOKEN"
+      ],
+      "classification": "ATTEMPTABLE until exact 0.11.1 builder methods are indexed"
+    },
+    {
+      "id": "appauth.token_response.success",
+      "capability": "TokenResponse fixture",
+      "kotlin_example": "val response = TokenResponse.Builder(tokenRequest)\n    .setTokenType(\"Bearer\")\n    .setAccessToken(\"access-token\")\n    .setRefreshToken(\"refresh-token\")\n    .setScope(\"openid profile\")\n    .build()",
+      "required_types": [
+        "TokenRequest",
+        "TokenResponse.Builder"
+      ],
+      "classification": "ATTEMPTABLE until exact 0.11.1 builder methods are indexed"
+    },
+    {
+      "id": "appauth.auth_state.from_responses",
+      "capability": "Authorized AuthState fixture",
+      "kotlin_example": "val authState = AuthState(authResponse, null)\nauthState.update(tokenResponse, null)",
+      "required_types": [
+        "AuthState",
+        "AuthorizationResponse",
+        "TokenResponse"
+      ],
+      "classification": "ATTEMPTABLE after response fixtures are verified"
+    },
+    {
+      "id": "appauth.auth_state.empty",
+      "capability": "Empty AuthState fixture",
+      "kotlin_example": "val authState = AuthState()",
+      "required_types": [
+        "AuthState"
+      ],
+      "classification": "SAFE"
+    },
+    {
+      "id": "appauth.authorization_exception.intent",
+      "capability": "AuthorizationException fixture",
+      "guidance": "Prefer a verified predefined template from AuthorizationException nested error groups, or serialize/deserialize a known exception. Do not invent constructor parameters.",
+      "classification": "PIPELINE_UNRESOLVED until exact error template fields/constructors are indexed"
+    }
+  ],
+  "generation_rules": [
+    "Resolve imports beginning with net.openid.appauth to net.openid:appauth:0.11.1.",
+    "Use builder-based construction for AuthorizationRequest, AuthorizationResponse, TokenRequest, TokenResponse, RegistrationRequest, and RegistrationResponse.",
+    "Construct AuthorizationServiceConfiguration before constructing request fixtures.",
+    "Use ResponseTypeValues and GrantTypeValues constants instead of literal protocol values when the exact constant is verified.",
+    "Use AuthState() for empty unauthenticated state.",
+    "Use AuthState update methods to model authorization and token transitions.",
+    "Use repository/service mocks for network execution; treat real AuthorizationService HTTP execution as integration behavior.",
+    "Select AppAuth opportunities only when every required request/response fixture in the construction chain is verified.",
+    "Classify missing constructor/builder evidence as PIPELINE_UNRESOLVED.",
+    "Include exact callback response/error combinations for AuthorizationService callbacks.",
+    "Use Android Intent extraction APIs only when the corresponding AppAuth fromIntent/toIntent methods are verified.",
+    "Prefer JSON round-trip fixtures only when jsonSerialize/jsonDeserialize signatures are verified."
+  ],
+  "positive_fixture_policy": {
+    "verified": [
+      "Use explicitly indexed constructors, builders, methods, constants, and callback interfaces.",
+      "Build fixtures from dependency order: configuration -> request -> response -> AuthState.",
+      "Provide exact values for clientId, redirectUri, responseType, grantType, state, scope, authorizationCode, and tokens.",
+      "Keep network services mocked at the application boundary for JUnit4 JVM tests."
+    ],
+    "pipeline_unresolved_when": [
+      "A required builder or setter is missing from the indexed API.",
+      "The repository expects an AppAuth type whose construction chain is incomplete.",
+      "An AuthorizationException shape or predefined error template is not indexed.",
+      "The test requires real browser, Custom Tab, Activity callback, or network behavior without a verified Robolectric/instrumentation fixture.",
+      "The target artifact version resolved by Gradle differs from 0.11.1."
+    ]
+  },
+  "rag_metadata": {
+    "recommended_chunk_keys": [
+      "library",
+      "version",
+      "class",
+      "kind",
+      "purpose",
+      "capability",
+      "fixture_role",
+      "fixture_recipe.id"
+    ],
+    "retrieval_filters": {
+      "library": "AppAuth for Android",
+      "version": "0.11.1",
+      "package_prefix": "net.openid.appauth"
+    },
+    "recommended_chunking": [
+      "One API class per chunk",
+      "One fixture recipe per chunk",
+      "Generation rules as one compact policy chunk",
+      "Keep constructors/builders with their owning response/request class"
+    ]
+  },
+  "generator_script": {
+    "purpose": "Generate an exhaustive exact API index from the official AppAuth 0.11.1 sources or Javadoc JAR available in the local Maven cache.",
+    "usage": [
+      "Place appauth-0.11.1-javadoc.jar or appauth-0.11.1-sources.jar beside the script.",
+      "Run: python generate_appauth_index.py",
+      "Replace/merge api_index entries with the generated exact signatures before enabling strict fixture allowlisting."
+    ],
+    "python": "import json\nimport re\nimport zipfile\nfrom pathlib import Path\nfrom bs4 import BeautifulSoup\n\nVERSION = \"0.11.1\"\nJAVADOC_JAR = Path(f\"appauth-{VERSION}-javadoc.jar\")\nSOURCE_JAR = Path(f\"appauth-{VERSION}-sources.jar\")\nOUT = Path(f\"appauth_{VERSION.replace('.', '_')}_full_api_index.json\")\n\ndef normalize(text):\n    return \" \".join(text.split())\n\ndef from_javadoc(path):\n    classes = []\n    with zipfile.ZipFile(path) as zf:\n        html_names = [\n            n for n in zf.namelist()\n            if n.startswith(\"net/openid/appauth/\")\n            and n.endswith(\".html\")\n            and not n.endswith((\"package-summary.html\", \"package-tree.html\"))\n        ]\n        for name in html_names:\n            soup = BeautifulSoup(zf.read(name), \"html.parser\")\n            fqcn = name[:-5].replace(\"/\", \".\")\n            item = {\n                \"class\": fqcn,\n                \"constructors\": [],\n                \"methods\": [],\n                \"fields\": [],\n                \"enum_constants\": []\n            }\n            page_text = soup.get_text(\"\\n\")\n            for heading, key in [\n                (\"Constructor Summary\", \"constructors\"),\n                (\"Method Summary\", \"methods\"),\n                (\"Field Summary\", \"fields\"),\n                (\"Enum Constant Summary\", \"enum_constants\")\n            ]:\n                node = soup.find(lambda tag: tag.name in (\"h2\", \"h3\")\n                                 and heading.lower() in tag.get_text(\" \", strip=True).lower())\n                if node:\n                    container = node.find_next([\"section\", \"div\", \"table\"])\n                    if container:\n                        vals = []\n                        for code in container.select(\"code\"):\n                            value = normalize(code.get_text(\" \", strip=True))\n                            if value and value not in vals:\n                                vals.append(value)\n                        item[key] = vals\n            classes.append(item)\n    return classes\n\ndef from_sources(path):\n    classes = []\n    with zipfile.ZipFile(path) as zf:\n        for name in zf.namelist():\n            if not name.startswith(\"net/openid/appauth/\") or not name.endswith(\".java\"):\n                continue\n            src = zf.read(name).decode(\"utf-8\", errors=\"replace\")\n            fqcn = name[:-5].replace(\"/\", \".\")\n            public_methods = []\n            public_ctors = []\n            public_fields = []\n            for match in re.finditer(\n                r\"(?m)^\\s*public\\s+(?:static\\s+|final\\s+|synchronized\\s+)*\"\n                r\"(?:(?P<ret>[\\w<>\\[\\].?, ]+)\\s+)?\"\n                r\"(?P<name>\\w+)\\s*\\((?P<args>[^)]*)\\)\",\n                src\n            ):\n                signature = normalize(match.group(0).strip().rstrip(\"{\"))\n                simple = fqcn.split(\".\")[-1]\n                if match.group(\"name\") == simple:\n                    public_ctors.append(signature)\n                else:\n                    public_methods.append(signature)\n            for match in re.finditer(\n                r\"(?m)^\\s*public\\s+(?:static\\s+)?(?:final\\s+)?[\\w<>\\[\\].?, ]+\\s+\\w+\\s*(?:=|;)\",\n                src\n            ):\n                public_fields.append(normalize(match.group(0).strip()))\n            classes.append({\n                \"class\": fqcn,\n                \"constructors\": public_ctors,\n                \"methods\": public_methods,\n                \"fields\": public_fields\n            })\n    return classes\n\nif JAVADOC_JAR.exists():\n    classes = from_javadoc(JAVADOC_JAR)\n    source = str(JAVADOC_JAR)\nelif SOURCE_JAR.exists():\n    classes = from_sources(SOURCE_JAR)\n    source = str(SOURCE_JAR)\nelse:\n    raise SystemExit(\"Provide the AppAuth 0.11.1 javadoc or sources JAR.\")\n\npayload = {\n    \"schema_version\": \"1.0\",\n    \"library\": \"AppAuth for Android\",\n    \"version\": VERSION,\n    \"source\": source,\n    \"maven_coordinates\": [f\"net.openid:appauth:{VERSION}\"],\n    \"api_index\": classes\n}\nOUT.write_text(json.dumps(payload, indent=2), encoding=\"utf-8\")\nprint(f\"wrote {OUT} with {len(classes)} classes\")\n"
+  }
+}

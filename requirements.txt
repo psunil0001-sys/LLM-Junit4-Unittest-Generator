@@ -1,0 +1,14 @@
+# Local / remote OpenAI-compatible LLM (llama.cpp, vLLM) + Google ADK agents.
+requests>=2.31.0
+openai>=1.40.0,<4.0.0
+google-adk>=1.0.0,<3.0.0
+
+# Optional structural indexing helpers (embeddings stay disabled by default).
+numpy>=1.24.0
+
+# Kotlin static analysis
+tree-sitter>=0.21.0
+tree-sitter-kotlin>=0.3.0
+pydantic>=2.12.0,<3.0.0
+semgrep>=1.100.0,<2.0.0
+PyYAML>=6.0.0,<7.0.0

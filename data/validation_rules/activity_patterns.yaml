@@ -1,0 +1,37 @@
+rules:
+  - when:
+      ctx:
+        cat_android_activity: true
+      test: '\b(?!controller\b)([A-Za-z_][A-Za-z0-9_]*)\.(onCreate|onStart|onResume|onPause|onStop|onDestroy)\s*\('
+    message: >-
+      invalid_direct_activity_lifecycle_call: Do not invoke protected Activity lifecycle methods directly;
+      use Robolectric ActivityController.
+
+  - when:
+      ctx:
+        cat_android_activity: true
+        cat_hilt_android_activity: true
+      test_any:
+        - '\b[A-Za-z_][A-Za-z0-9_]*::class\.java\.getDeclaredField\s*\('
+        - isAccessible = true
+    repair: invalid_hilt_activity_reflection
+
+  - when:
+      ctx:
+        cat_android_activity: true
+        cat_hilt_android_activity: true
+      test: '(?:buildActivity\s*\([^)]*\)\s*\.\s*create\s*\(|\.create\s*\(\s*\)\s*\.\s*get\s*\(\s*\))'
+      test_not_contains: HiltAndroidRule
+    message: >-
+      invalid_hilt_activity_create_setup: @AndroidEntryPoint Activity tests that call Robolectric.create()
+      require @HiltAndroidTest + HiltAndroidRule + @Config(application = HiltTestApplication::class).
+      Provide @BindValue/@TestInstallIn for @Inject deps before create(); do not assign inject fields after create().
+
+  - when:
+      ctx:
+        cat_android_activity: true
+      source: '\bBuildConfig\.([A-Z][A-Z0-9_]*)\b'
+      test: '\bBuildConfig\.([A-Z][A-Z0-9_]*)\b'
+    message: >-
+      invalid_fixed_buildconfig_branch: BuildConfig flags are fixed by the active Gradle variant.
+      Do not generate a forced true-path Activity test without a source-visible override seam.

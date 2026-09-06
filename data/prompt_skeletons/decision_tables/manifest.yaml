@@ -1,0 +1,16 @@
+catalog: []
+plan:
+  - testable_vs_not
+  - partial_branch
+  - plan_execute
+  - hilt_activity
+  - hilt_fragment
+  - hilt_service
+  - hilt_worker
+  - carui
+  - apollo
+  - navigation
+  - permissions
+  - coroutines
+coder: []
+fix: []

@@ -1,0 +1,7 @@
+.env
+llama.cpp/
+models/*.gguf
+models/*.part
+logs/
+*.log
+*.pid

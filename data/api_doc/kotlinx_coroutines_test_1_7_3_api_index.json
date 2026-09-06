@@ -1,0 +1,200 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-07-08T11:31:52Z",
+  "name": "kotlinx-coroutines-test",
+  "coordinates": {
+    "group_id": "org.jetbrains.kotlinx",
+    "artifact_id": "kotlinx-coroutines-test",
+    "version": "1.7.3",
+    "gradle": "testImplementation(\"org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3\")"
+  },
+  "description": "Test utilities for kotlinx.coroutines.",
+  "source_confidence": "high for public test APIs; official online docs may show current version unless URL/version is pinned.",
+  "official_references": [
+    "https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-test/",
+    "https://github.com/Kotlin/kotlinx.coroutines/tree/1.7.3/kotlinx-coroutines-test",
+    "https://repo1.maven.org/maven2/org/jetbrains/kotlinx/kotlinx-coroutines-test/1.7.3/"
+  ],
+  "packages": [
+    {
+      "name": "kotlinx.coroutines.test",
+      "purpose": "Coroutine test scheduler, dispatchers, TestScope, and Dispatchers.Main replacement."
+    }
+  ],
+  "api": [
+    {
+      "qualified_name": "kotlinx.coroutines.test.runTest",
+      "kind": "function",
+      "signature_patterns": [
+        "fun runTest(context: CoroutineContext = EmptyCoroutineContext, dispatchTimeoutMs: Long = DEFAULT_DISPATCH_TIMEOUT_MS, testBody: suspend TestScope.() -> Unit): TestResult",
+        "fun TestScope.runTest(dispatchTimeoutMs: Long = DEFAULT_DISPATCH_TIMEOUT_MS, testBody: suspend TestScope.() -> Unit): TestResult"
+      ],
+      "purpose": "Run coroutine tests with virtual time and uncaught-exception handling."
+    },
+    {
+      "qualified_name": "kotlinx.coroutines.test.TestCoroutineScheduler",
+      "kind": "class",
+      "members": [
+        "val currentTime: Long",
+        "val timeSource: TimeSource.WithComparableMarks",
+        "fun runCurrent()",
+        "fun advanceUntilIdle()",
+        "fun advanceTimeBy(delayTimeMillis: Long)",
+        "fun advanceTimeBy(delayTime: Duration)"
+      ],
+      "purpose": "Shared virtual time scheduler used by TestDispatcher and TestScope."
+    },
+    {
+      "qualified_name": "kotlinx.coroutines.test.TestScope",
+      "kind": "interface/class",
+      "members": [
+        "val testScheduler: TestCoroutineScheduler",
+        "val backgroundScope: CoroutineScope",
+        "fun runTest(...)"
+      ],
+      "purpose": "CoroutineScope integrated with runTest and virtual time."
+    },
+    {
+      "qualified_name": "kotlinx.coroutines.test.TestScope",
+      "kind": "function",
+      "signature_patterns": [
+        "fun TestScope(context: CoroutineContext = EmptyCoroutineContext): TestScope"
+      ],
+      "purpose": "Create a standalone TestScope for setup/teardown or shared scheduler tests."
+    },
+    {
+      "qualified_name": "kotlinx.coroutines.test.TestDispatcher",
+      "kind": "abstract class",
+      "members": [
+        "val scheduler: TestCoroutineScheduler"
+      ],
+      "purpose": "CoroutineDispatcher whose delays are controlled by TestCoroutineScheduler."
+    },
+    {
+      "qualified_name": "kotlinx.coroutines.test.StandardTestDispatcher",
+      "kind": "function/class factory",
+      "signature_patterns": [
+        "fun StandardTestDispatcher(scheduler: TestCoroutineScheduler? = null, name: String? = null): TestDispatcher"
+      ],
+      "purpose": "Queued deterministic test dispatcher; launched coroutines need scheduler advancement/runCurrent/yield."
+    },
+    {
+      "qualified_name": "kotlinx.coroutines.test.UnconfinedTestDispatcher",
+      "kind": "function/class factory",
+      "signature_patterns": [
+        "fun UnconfinedTestDispatcher(scheduler: TestCoroutineScheduler? = null, name: String? = null): TestDispatcher"
+      ],
+      "purpose": "Unconfined-like test dispatcher; enters top-level children eagerly in runTest."
+    },
+    {
+      "qualified_name": "kotlinx.coroutines.test.Dispatchers.setMain",
+      "kind": "extension function",
+      "signature_patterns": [
+        "fun Dispatchers.setMain(dispatcher: CoroutineDispatcher)"
+      ],
+      "purpose": "Override Dispatchers.Main in tests."
+    },
+    {
+      "qualified_name": "kotlinx.coroutines.test.Dispatchers.resetMain",
+      "kind": "extension function",
+      "signature_patterns": [
+        "fun Dispatchers.resetMain()"
+      ],
+      "purpose": "Reset Dispatchers.Main after tests."
+    },
+    {
+      "qualified_name": "kotlinx.coroutines.test.currentTime",
+      "kind": "extension property",
+      "signature_patterns": [
+        "val TestScope.currentTime: Long"
+      ],
+      "purpose": "Current virtual time in runTest/TestScope."
+    },
+    {
+      "qualified_name": "kotlinx.coroutines.test.testScheduler",
+      "kind": "extension/property",
+      "signature_patterns": [
+        "val TestScope.testScheduler: TestCoroutineScheduler"
+      ],
+      "purpose": "Access current test scheduler."
+    },
+    {
+      "qualified_name": "kotlinx.coroutines.test.runCurrent",
+      "kind": "extension function",
+      "signature_patterns": [
+        "fun TestScope.runCurrent()"
+      ],
+      "purpose": "Run tasks scheduled at current virtual time."
+    },
+    {
+      "qualified_name": "kotlinx.coroutines.test.advanceUntilIdle",
+      "kind": "extension function",
+      "signature_patterns": [
+        "fun TestScope.advanceUntilIdle()"
+      ],
+      "purpose": "Drain all scheduled foreground tasks."
+    },
+    {
+      "qualified_name": "kotlinx.coroutines.test.advanceTimeBy",
+      "kind": "extension function",
+      "signature_patterns": [
+        "fun TestScope.advanceTimeBy(delayTimeMillis: Long)",
+        "fun TestScope.advanceTimeBy(delayTime: Duration)"
+      ],
+      "purpose": "Advance virtual time by a duration."
+    },
+    {
+      "qualified_name": "kotlinx.coroutines.test.TestResult",
+      "kind": "expect/actual typealias/class",
+      "members": [],
+      "purpose": "Return type used for multiplatform runTest compatibility."
+    },
+    {
+      "qualified_name": "kotlinx.coroutines.test.TestCoroutineDispatcher",
+      "kind": "deprecated class",
+      "members": [
+        "pauseDispatcher()",
+        "resumeDispatcher()",
+        "cleanupTestCoroutines()"
+      ],
+      "purpose": "Deprecated old test dispatcher. Avoid in generated tests."
+    },
+    {
+      "qualified_name": "kotlinx.coroutines.test.TestCoroutineScope",
+      "kind": "deprecated interface/class",
+      "members": [
+        "cleanupTestCoroutines()"
+      ],
+      "purpose": "Deprecated old test scope. Use TestScope/runTest."
+    },
+    {
+      "qualified_name": "kotlinx.coroutines.test.runBlockingTest",
+      "kind": "deprecated function",
+      "signature_patterns": [
+        "fun runBlockingTest(...)"
+      ],
+      "purpose": "Deprecated old coroutine test runner. Use runTest."
+    }
+  ],
+  "rag_usage_hints": [
+    "Prefer runTest over runBlockingTest/TestCoroutineDispatcher/TestCoroutineScope.",
+    "Use StandardTestDispatcher for deterministic scheduling and call runCurrent/advanceUntilIdle as needed.",
+    "Use Dispatchers.setMain(testDispatcher) in setup and Dispatchers.resetMain() in teardown for ViewModel/Main dispatcher tests.",
+    "Use backgroundScope for infinite/background jobs inside runTest."
+  ],
+  "local_exhaustive_extractor": {
+    "requires": [
+      "JDK 17+",
+      "curl",
+      "jar",
+      "javap"
+    ],
+    "commands": [
+      "curl -L -o kotlinx-coroutines-test-1.7.3.jar https://repo1.maven.org/maven2/org/jetbrains/kotlinx/kotlinx-coroutines-test/1.7.3/kotlinx-coroutines-test-1.7.3.jar",
+      "jar tf kotlinx-coroutines-test-1.7.3.jar | grep '\\.class$' | sed 's#/#.#g;s#\\.class$##' > classes.txt",
+      "while read c; do javap -classpath kotlinx-coroutines-test-1.7.3.jar -public \"$c\"; done < classes.txt > kotlinx-coroutines-test-1.7.3-public-api.txt"
+    ],
+    "note": "For multiplatform artifacts, inspect JVM variant if your project resolves kotlinx-coroutines-test-jvm transitively."
+  },
+  "note": "API index for local LLM/RAG use. Entries focus on public test-facing APIs and include a local extractor recipe to regenerate from official artifacts for bytecode-exhaustive coverage."
+}

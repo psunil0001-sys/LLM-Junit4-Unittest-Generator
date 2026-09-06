@@ -1,0 +1,20 @@
+rules:
+  - when:
+      source_any:
+        - activeNetwork
+        - getNetworkCapabilities
+      test_any:
+        - '\.setActiveNetworkInfo\s*\(\s*null\s*\)'
+        - 'ShadowNetworkInfo.newInstance\('
+      test_not: NetworkInfo.DetailedState
+    repair: deprecated_robolectric_api
+
+  - when:
+      test_any:
+        - org.robolectric.ShadowDialog
+        - flushMainThreadQueue
+        - Robolectric.getShadowApplication\(\)
+        - '\.getNextStartedIntents?\s*\('
+      ctx:
+        robolectric_major_at_least_4: true
+    repair: deprecated_robolectric_api

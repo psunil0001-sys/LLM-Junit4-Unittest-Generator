@@ -1,0 +1,26 @@
+# Local / secrets
+.cache/
+.env
+**/.env
+*.pem
+*.key
+credentials*.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Local LLM / runtime
+AgenticLLM/bin/
+AgenticLLM/logs/
+*.gguf
+
+# Reports / noise (regenerable)
+data/diagnostics.json
+data/htmlreport/
+data/diagnostic_store.json
+log/
+*.log

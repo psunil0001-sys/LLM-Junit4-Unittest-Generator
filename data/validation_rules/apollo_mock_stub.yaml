@@ -1,0 +1,6 @@
+rules:
+  - when:
+      test: '(?:`when`|Mockito\.`when`|org\.mockito\.Mockito\.`when`)\s*\(\s*[A-Za-z_][A-Za-z0-9_]*Class\.getMethod\s*\('
+    message: >-
+      Mockito reflection stubbing is targeting the Method object instead of the mock result.
+      Use mockApollo(...) or stub clazz.getMethod(getter).invoke(instance), then thenReturn(value).

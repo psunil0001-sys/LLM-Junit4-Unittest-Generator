@@ -1,0 +1,58 @@
+rules:
+  - when:
+      test: '\b(?:[A-Za-z0-9_]+(?:Mutation|Query)\.[A-Za-z0-9_]+)\.(?:Body|Trip)\b'
+    message: >-
+      Possible invented Apollo nested type: use only verified generated sibling classes such as Operation.Body or Operation.TripList.
+
+  - when:
+      test: 'Class\.forName\(\s*"[^"]+(?:Mutation|Query)\\\$[A-Z][A-Za-z0-9_]+\\\$(?:Body|TripList|Trip)"'
+    message: >-
+      Apollo generated child class name looks nested under a response receiver.
+      Use verified sibling class names such as Operation$Body or Operation$TripList, not Operation$Receiver$Body.
+
+  - when:
+      test: '\b[A-Z][A-Za-z0-9_]*(?:Mutation|Query)\.[A-Z][A-Za-z0-9_]*\s*\('
+    message: >-
+      Apollo operation response class appears to be constructed directly.
+      Use Class.forName string references, raw Mockito.mock(Class<*>), and reflected ApiExtKt invocation
+      for generated operation response receivers.
+
+  - when:
+      test: '\bmock\s*<\s*[A-Z][A-Za-z0-9_]*(?:Mutation|Query)\.[A-Za-z0-9_]*\s*>\s*\('
+    message: >-
+      Apollo operation response receiver is mocked with a compile-time generated type.
+      Use Class.forName plus raw Mockito.mock(Class<*>) and invoke ApiExtKt methods by Java reflection.
+
+  - when:
+      test: 'fun\s+invokeApiExt\s*\([^)]*vararg\s+parameterTypes\s*:\s*Class<\*>[^)]*,\s*args\s*:\s*Array<Any\?>'
+    message: >-
+      invokeApiExt helper has invalid Kotlin parameter ordering: vararg cannot appear before args.
+      Use invokeApiExt(methodName: String, vararg args: Any?) against ApiExtKt.
+
+  - when:
+      test: 'invokeApiExt\s*\(\s*"[A-Za-z0-9_]+"\s*,\s*[A-Za-z_][A-Za-z0-9_]*\s*,\s*arrayOf\s*\('
+    message: >-
+      invokeApiExt should receive the method name plus vararg arguments.
+      Call it as invokeApiExt("toCreateTripInputGQL", projectModel).
+
+  - when:
+      test_contains: mockApollo(
+      test: '"get[A-Za-z0-9_]+"\s+to\s+mockApollo\s*\('
+    message: >-
+      mockApollo returns Pair<Class<*>, Any>. Getter maps should pass only the mocked instance.
+      Use "getBody" to mockApollo("...\$Body", mapOf(...)).second for nested Apollo body/list mocks.
+
+  - when:
+      test: '(?:query|mutation)\s*\(\s*any\s*'
+      test_contains: thenThrow
+    message: >-
+      Do not stub ApolloClient.query()/mutation() with thenThrow.
+      Use apolloClient(QueueNetworkTransport().enqueueThrow(...)) so execute() observes the failure.
+
+  - when:
+      test_contains_any:
+        - 'Array(paramTypes.size) { null }'
+        - 'Array(paramTypes.size){null}'
+    message: >-
+      Do not construct generated api.type classes with Array(paramTypes.size) { null }.
+      Use newType(name, *args) or invokeApiExt("to...GQL", projectModel) from the Apollo test harness.
